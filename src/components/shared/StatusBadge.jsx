@@ -1,17 +1,29 @@
+import { Badge } from '../ui/badge';
+
 const STATUS_STYLES = {
-  pending: 'bg-yellow-100 text-yellow-800 ring-yellow-500/30',
-  'on-time': 'bg-green-100 text-green-800 ring-green-500/30',
-  late: 'bg-red-100 text-red-800 ring-red-500/30',
-  admin: 'bg-[#1E3A5F]/10 text-[#1E3A5F] ring-[#1E3A5F]/20',
-  instructor: 'bg-[#2E86AB]/10 text-[#1E3A5F] ring-[#2E86AB]/30',
+  pending: 'border-amber-500/20 text-amber-400/80 bg-amber-500/8',
+  approved: 'border-green-500/20 text-green-400/80 bg-green-500/8',
+  rejected: 'border-red-500/20 text-red-400/80 bg-red-500/8',
+  'on-time': 'border-green-500/20 text-green-400/80 bg-green-500/8',
+  late: 'border-red-500/20 text-red-400/80 bg-red-500/8',
+  admin: 'border-purple-500/20 text-purple-400/80 bg-purple-500/8',
+  instructor: 'border-blue-500/20 text-blue-400/80 bg-blue-500/8',
+  overloaded: 'border-red-500/20 text-red-400/80 bg-red-500/8',
+  balanced: 'border-green-500/20 text-green-400/80 bg-green-500/8',
+  underutilized: 'border-amber-500/20 text-amber-400/80 bg-amber-500/8',
 };
 
 const STATUS_LABELS = {
   pending: 'Pending',
+  approved: 'Approved',
+  rejected: 'Rejected',
   'on-time': 'On Time',
   late: 'Late',
   admin: 'Admin',
   instructor: 'Instructor',
+  overloaded: 'Overloaded',
+  balanced: 'Balanced',
+  underutilized: 'Underutilized',
 };
 
 export default function StatusBadge({ status }) {
@@ -19,12 +31,12 @@ export default function StatusBadge({ status }) {
     return null;
   }
 
-  const badgeStyle = STATUS_STYLES[status] ?? 'bg-slate-100 text-slate-800 ring-slate-600/20';
+  const badgeStyle = STATUS_STYLES[status] ?? 'border-white/15 text-white/60 bg-white/5';
   const label = STATUS_LABELS[status] ?? status;
 
   return (
-    <span className={`inline-flex animate-[fade-in-up_150ms_ease-in-out] items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset transition-all duration-150 ease-in-out ${badgeStyle}`}>
+    <Badge className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${badgeStyle}`}>
       {label}
-    </span>
+    </Badge>
   );
 }

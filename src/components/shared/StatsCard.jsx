@@ -1,33 +1,28 @@
 const COLOR_STYLES = {
   green: {
-    border: 'border-l-[#27AE60]',
-    icon: 'bg-green-100 text-green-700',
-    trendPositive: 'text-green-600',
-    trendNegative: 'text-red-600',
+    icon: 'bg-white/5 text-white/30',
+    trendPositive: 'text-emerald-300',
+    trendNegative: 'text-red-300',
   },
   red: {
-    border: 'border-l-[#E74C3C]',
-    icon: 'bg-red-100 text-red-700',
-    trendPositive: 'text-green-600',
-    trendNegative: 'text-red-600',
+    icon: 'bg-white/5 text-white/30',
+    trendPositive: 'text-emerald-300',
+    trendNegative: 'text-red-300',
   },
   blue: {
-    border: 'border-l-[#2E86AB]',
-    icon: 'bg-blue-100 text-blue-700',
-    trendPositive: 'text-green-600',
-    trendNegative: 'text-red-600',
+    icon: 'bg-white/5 text-white/30',
+    trendPositive: 'text-emerald-300',
+    trendNegative: 'text-red-300',
   },
   yellow: {
-    border: 'border-l-[#F39C12]',
-    icon: 'bg-yellow-100 text-yellow-700',
-    trendPositive: 'text-green-600',
-    trendNegative: 'text-red-600',
+    icon: 'bg-white/5 text-white/30',
+    trendPositive: 'text-emerald-300',
+    trendNegative: 'text-red-300',
   },
   purple: {
-    border: 'border-l-[#8E44AD]',
-    icon: 'bg-purple-100 text-purple-700',
-    trendPositive: 'text-green-600',
-    trendNegative: 'text-red-600',
+    icon: 'bg-white/5 text-white/30',
+    trendPositive: 'text-emerald-300',
+    trendNegative: 'text-red-300',
   },
 };
 
@@ -46,7 +41,7 @@ export default function StatsCard({
 
   return (
     <article
-      className={`app-card border-l-4 ${style.border} ${onClick ? 'app-card-interactive' : ''}`}
+      className={`app-card card-interactive fade-up p-5 ${onClick ? 'app-card-interactive' : ''}`}
       onClick={onClick ?? undefined}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -62,18 +57,18 @@ export default function StatsCard({
       }
     >
       <div className="flex items-start justify-between gap-3">
-        <p className="app-label">{title}</p>
+        <p className="app-label flex-1">{title}</p>
         {Icon ? (
-          <span className={`inline-flex h-9 w-9 items-center justify-center rounded-full ${style.icon}`}>
+          <span className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${style.icon}`}>
             <Icon className="h-4 w-4" />
           </span>
         ) : null}
       </div>
 
-      <p className="mt-3 text-3xl font-bold text-[#1A1A2E]">{value}</p>
-      {subtitle ? <p className="mt-2 text-sm text-gray-600">{subtitle}</p> : null}
+      <p className="mt-4 text-3xl font-bold text-white/90">{value}</p>
+      {subtitle ? <p className="mt-2 text-sm text-white/35">{subtitle}</p> : null}
       {trend ? (
-        <p className={`mt-2 text-sm font-medium ${trendClassName}`}>
+        <p className={`mt-3 flex items-center gap-1.5 text-xs font-medium ${trendClassName}`}>
           {trendDirection === 'down' ? '↓' : '↑'} {trend}
         </p>
       ) : null}

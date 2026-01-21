@@ -37,10 +37,10 @@ function CustomTooltip({ active, payload }) {
   const varianceText = point.variance > 0 ? `+${point.variance}` : `${point.variance}`;
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-md">
-      <p className="font-semibold text-[#1A1A2E]">{point.name}</p>
-      <p className="mt-1 text-gray-700">Total duties: {point.totalDuties}</p>
-      <p className="mt-1 text-gray-700">vs average: {varianceText}</p>
+    <div className="rounded-xl border border-white/10 bg-[#16161F] px-3 py-2 text-sm shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+      <p className="text-[11px] font-semibold text-white/85">{point.name}</p>
+      <p className="mt-1 text-[11px] text-white/50">Total duties: {point.totalDuties}</p>
+      <p className="mt-1 text-[11px] text-white/50">vs average: {varianceText}</p>
     </div>
   );
 }
@@ -78,13 +78,13 @@ function DutyDistributionChart({ instructors = [] }) {
   }, [instructors, average]);
 
   return (
-    <section className="app-card">
+    <section className="app-card card-interactive fade-up p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-[#1A1A2E]">Duty Distribution by Instructor</h3>
-          <p className="text-sm text-gray-500">Compared against team average</p>
+          <h3 className="text-sm font-medium text-white/70">Duty Distribution by Instructor</h3>
+          <p className="mt-0.5 text-xs text-white/30">Compared against team average</p>
         </div>
-        <span className="rounded-full bg-[#F5A623]/15 px-3 py-1 text-sm font-semibold text-[#8f5d00]">
+        <span className="rounded-lg border border-white/8 bg-white/5 px-2 py-1 text-xs text-white/40">
           Team Avg: {average.toFixed(1)} duties
         </span>
       </div>
@@ -97,31 +97,31 @@ function DutyDistributionChart({ instructors = [] }) {
         <div className="mt-4 h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-              <XAxis dataKey="firstName" tick={{ fill: '#6B7280', fontSize: 12 }} />
-              <YAxis tick={{ fill: '#6B7280', fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="1 4" stroke="rgba(255,255,255,0.05)" vertical={false} />
+              <XAxis dataKey="firstName" tick={{ fill: 'rgba(255,255,255,0.25)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: 'rgba(255,255,255,0.25)', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
               <Legend verticalAlign="bottom" height={24} />
               <ReferenceLine
                 y={average}
-                stroke="#F5A623"
-                strokeDasharray="6 4"
-                label={{ value: 'Avg', fill: '#8f5d00', position: 'insideTopRight' }}
+                stroke="rgba(255,255,255,0.12)"
+                strokeDasharray="3 4"
+                label={{ value: 'Target', fill: 'rgba(255,255,255,0.25)', fontSize: 10, position: 'insideTopRight' }}
               />
-              <Bar dataKey="totalDuties" name="Total Duties" fill="#2E86AB" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="totalDuties" name="Total Duties" fill="rgba(245,158,11,0.7)" radius={[4, 4, 0, 0]} maxBarSize={40} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       )}
 
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        <span className="rounded-full bg-red-100 px-3 py-2 text-center text-sm font-semibold text-red-700">
+        <span className="rounded-full border border-red-500/20 bg-red-500/8 px-3 py-2 text-center text-sm font-semibold text-red-400/80">
           {summary.overloaded} Overloaded
         </span>
-        <span className="rounded-full bg-green-100 px-3 py-2 text-center text-sm font-semibold text-green-700">
+        <span className="rounded-full border border-green-500/20 bg-green-500/8 px-3 py-2 text-center text-sm font-semibold text-green-400/80">
           {summary.balanced} Balanced
         </span>
-        <span className="rounded-full bg-yellow-100 px-3 py-2 text-center text-sm font-semibold text-yellow-700">
+        <span className="rounded-full border border-amber-500/20 bg-amber-500/8 px-3 py-2 text-center text-sm font-semibold text-amber-400/80">
           {summary.underutilized} Underutilized
         </span>
       </div>

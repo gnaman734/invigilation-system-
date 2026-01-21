@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useInstructors } from '../../lib/hooks/useInstructors';
-import { Users } from 'lucide-react';
+import { Pencil, Trash2, Users } from 'lucide-react';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import Modal from '../shared/Modal';
 import TablePagination from '../shared/TablePagination';
@@ -183,9 +183,9 @@ export default function InstructorManager({ openCreateTrigger = 0 }) {
   };
 
   return (
-    <section className="app-card animate-[fade-in-up_240ms_ease-out] space-y-4 p-4">
+    <section className="app-card fade-up space-y-4 p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-lg font-semibold text-slate-900">Instructor Management</h2>
+        <h2 className="text-2xl">Instructor Management</h2>
         <button
           type="button"
           onClick={openCreateModal}
@@ -196,11 +196,13 @@ export default function InstructorManager({ openCreateTrigger = 0 }) {
         </button>
       </div>
 
-      {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p> : null}
 
-      <div className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3 sm:flex-row">
+      <div className="flex items-center justify-between border-b border-white/6 px-5 py-4">
+        <p className="text-sm font-medium text-white/70">Faculty Records</p>
+        <div className="flex flex-col gap-3 sm:flex-row">
         <div className="w-full">
-          <label htmlFor="instructor-search" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-600">
+          <label htmlFor="instructor-search" className="mb-1 block text-xs font-medium uppercase tracking-wide text-white/35">
             Search
           </label>
           <input
@@ -209,18 +211,18 @@ export default function InstructorManager({ openCreateTrigger = 0 }) {
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Name, email, department..."
-            className="app-input"
+            className="app-input w-52 px-3 py-2 text-xs text-white/60"
           />
         </div>
         <div className="w-full sm:max-w-xs">
-          <label htmlFor="instructor-dept-filter" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-600">
+          <label htmlFor="instructor-dept-filter" className="mb-1 block text-xs font-medium uppercase tracking-wide text-white/35">
             Department
           </label>
           <select
             id="instructor-dept-filter"
             value={departmentFilter}
             onChange={(event) => setDepartmentFilter(event.target.value)}
-            className="app-input"
+            className="app-input px-3 py-2 text-xs text-white/60"
           >
             <option value="all">All departments</option>
             {departmentOptions.map((department) => (
@@ -229,6 +231,7 @@ export default function InstructorManager({ openCreateTrigger = 0 }) {
               </option>
             ))}
           </select>
+        </div>
         </div>
       </div>
 
@@ -248,16 +251,16 @@ export default function InstructorManager({ openCreateTrigger = 0 }) {
         <>
           <div className="space-y-3 md:hidden">
             {paginatedInstructors.map((instructor) => (
-              <article key={instructor.instructor_id} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Name</p>
-                <p className="mt-1 font-semibold text-gray-800">{instructor.name}</p>
+              <article key={instructor.instructor_id} className="app-card card-interactive rounded-xl p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-white/35">Name</p>
+                <p className="mt-1 font-semibold text-white/80">{instructor.name}</p>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                  <p><span className="text-gray-500">Department:</span> {instructor.department ?? '--'}</p>
-                  <p><span className="text-gray-500">Duties:</span> {instructor.total_duties ?? 0}</p>
-                  <p><span className="text-gray-500">Late:</span> {instructor.late_arrivals ?? 0}</p>
-                  <p><span className="text-gray-500">Punctuality:</span> {formatPunctuality(instructor.punctuality_percentage)}</p>
+                  <p><span className="text-white/35">Department:</span> {instructor.department ?? '--'}</p>
+                  <p><span className="text-white/35">Duties:</span> {instructor.total_duties ?? 0}</p>
+                  <p><span className="text-white/35">Late:</span> {instructor.late_arrivals ?? 0}</p>
+                  <p><span className="text-white/35">Punctuality:</span> {formatPunctuality(instructor.punctuality_percentage)}</p>
                 </div>
-                <p className="mt-2 text-sm text-gray-600">{instructor.email}</p>
+                <p className="mt-2 text-sm text-white/55">{instructor.email}</p>
                 <div className="mt-3 flex items-center justify-end gap-2">
                   <button type="button" onClick={() => openEditModal(instructor)} disabled={!isOnline} className="app-btn-ghost px-3 py-1.5 text-xs">Edit</button>
                   <button type="button" onClick={() => setDeleteTarget(instructor)} disabled={!isOnline} className="app-btn-danger px-3 py-1.5 text-xs">Delete</button>
@@ -282,30 +285,30 @@ export default function InstructorManager({ openCreateTrigger = 0 }) {
             </thead>
             <tbody>
               {paginatedInstructors.map((instructor) => (
-                <tr key={instructor.instructor_id}>
-                  <td className="font-medium text-gray-800">{instructor.name}</td>
+                <tr key={instructor.instructor_id} className="group">
+                  <td className="font-medium text-white/80">{instructor.name}</td>
                   <td>{instructor.department ?? '--'}</td>
                   <td>{instructor.email}</td>
                   <td>{instructor.total_duties ?? 0}</td>
                   <td>{instructor.late_arrivals ?? 0}</td>
                   <td>{formatPunctuality(instructor.punctuality_percentage)}</td>
                   <td>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                       <button
                         type="button"
                         onClick={() => openEditModal(instructor)}
                         disabled={!isOnline}
-                        className="app-btn-ghost px-3 py-1.5 text-xs"
+                        className="rounded-lg p-1.5 text-white/30 transition-colors hover:bg-white/8 hover:text-white/70"
                       >
-                        Edit
+                        <Pencil className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
                         onClick={() => setDeleteTarget(instructor)}
                         disabled={!isOnline}
-                        className="app-btn-danger px-3 py-1.5 text-xs"
+                        className="rounded-lg p-1.5 text-white/30 transition-colors hover:bg-red-500/10 hover:text-red-400"
                       >
-                        Delete
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
@@ -325,7 +328,7 @@ export default function InstructorManager({ openCreateTrigger = 0 }) {
       >
         <form className={`space-y-3 ${shake ? 'animate-shake' : ''}`} onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="instructor-name" className="mb-1 block text-sm font-medium text-slate-700">
+            <label htmlFor="instructor-name" className="mb-1 block text-xs tracking-wide text-white/40">
               Name
             </label>
             <input
@@ -333,14 +336,14 @@ export default function InstructorManager({ openCreateTrigger = 0 }) {
               type="text"
               value={form.name}
               onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
-              className={`app-input ${fieldErrors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
+              className={`app-input ${fieldErrors.name ? 'border-red-500/40' : ''}`}
               required
             />
-            {fieldErrors.name ? <p className="mt-1 text-xs text-red-600">{fieldErrors.name}</p> : null}
+            {fieldErrors.name ? <p className="mt-1 text-xs text-red-400">{fieldErrors.name}</p> : null}
           </div>
 
           <div>
-            <label htmlFor="instructor-email" className="mb-1 block text-sm font-medium text-slate-700">
+            <label htmlFor="instructor-email" className="mb-1 block text-xs tracking-wide text-white/40">
               Email
             </label>
             <input
@@ -348,14 +351,14 @@ export default function InstructorManager({ openCreateTrigger = 0 }) {
               type="email"
               value={form.email}
               onChange={(event) => setForm((previous) => ({ ...previous, email: event.target.value }))}
-              className={`app-input ${fieldErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
+              className={`app-input ${fieldErrors.email ? 'border-red-500/40' : ''}`}
               required
             />
-            {fieldErrors.email ? <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p> : null}
+            {fieldErrors.email ? <p className="mt-1 text-xs text-red-400">{fieldErrors.email}</p> : null}
           </div>
 
           <div>
-            <label htmlFor="instructor-department" className="mb-1 block text-sm font-medium text-slate-700">
+            <label htmlFor="instructor-department" className="mb-1 block text-xs tracking-wide text-white/40">
               Department
             </label>
             <input
@@ -363,14 +366,14 @@ export default function InstructorManager({ openCreateTrigger = 0 }) {
               type="text"
               value={form.department}
               onChange={(event) => setForm((previous) => ({ ...previous, department: event.target.value }))}
-              className={`app-input ${fieldErrors.department ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
+              className={`app-input ${fieldErrors.department ? 'border-red-500/40' : ''}`}
               required
             />
-            {fieldErrors.department ? <p className="mt-1 text-xs text-red-600">{fieldErrors.department}</p> : null}
+            {fieldErrors.department ? <p className="mt-1 text-xs text-red-400">{fieldErrors.department}</p> : null}
           </div>
 
           {formError ? (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p>
+            <p className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300">{formError}</p>
           ) : null}
 
           <div className="flex items-center justify-end gap-3">

@@ -76,21 +76,21 @@ export default function PunctualityPanel({
 
   if (loading) {
     return (
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="h-10 animate-pulse rounded-md bg-slate-100" />
-        <div className="mt-3 h-10 animate-pulse rounded-md bg-slate-100" />
-        <div className="mt-3 h-10 animate-pulse rounded-md bg-slate-100" />
+      <section className="rounded-xl border border-white/8 bg-[#111118] p-4">
+        <div className="skeleton h-10 rounded-md" />
+        <div className="skeleton mt-3 h-10 rounded-md" />
+        <div className="skeleton mt-3 h-10 rounded-md" />
       </section>
     );
   }
 
   return (
-    <section className="app-card space-y-5 p-4">
-      {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+    <section className="app-card fade-up space-y-5 p-4">
+      {error ? <p className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p> : null}
 
       {showOverallStats ? (
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Overall Punctuality Stats</h2>
+          <h2 className="text-sm font-medium text-white/70">Overall Punctuality Stats</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatsCard title="Total Duties" value={totals.totalDuties} subtitle="Tracked assignments" color="blue" />
             <StatsCard title="On-Time Arrivals" value={totals.onTimeArrivals} subtitle="Reached before deadline" color="green" />
@@ -107,9 +107,9 @@ export default function PunctualityPanel({
 
       {showTrendTable ? (
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Per Instructor Punctuality</h2>
+          <h2 className="text-sm font-medium text-white/70">Per Instructor Punctuality</h2>
           {rankedInstructors.length === 0 ? (
-            <p className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            <p className="mt-3 rounded-md border border-white/8 bg-[#16161F] px-4 py-3 text-sm text-white/45">
               No instructor punctuality data available.
             </p>
           ) : (
@@ -128,7 +128,7 @@ export default function PunctualityPanel({
                 <tbody>
                   {paginatedInstructors.map((instructor) => (
                     <tr key={instructor.instructor_id}>
-                      <td className="font-medium text-gray-800">{instructor.name}</td>
+                      <td className="font-medium text-white/80">{instructor.name}</td>
                       <td>{instructor.total_duties ?? 0}</td>
                       <td>{instructor.on_time_arrivals ?? 0}</td>
                       <td>{instructor.late_arrivals ?? 0}</td>
@@ -146,19 +146,19 @@ export default function PunctualityPanel({
 
       {showRecentLateArrivals ? (
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Recent Late Arrivals</h2>
+          <h2 className="text-sm font-medium text-white/70">Recent Late Arrivals</h2>
           {recentLateArrivals.length === 0 ? (
             <EmptyState icon={CheckCircle2} title="No late arrivals" subtitle="All instructors are punctual" />
           ) : (
             <div className="mt-3 space-y-3">
               {recentLateArrivals.map((duty) => (
-                <article key={duty.duty_id} className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm">
-                  <p className="font-semibold text-red-800">{duty.instructor_name ?? 'Unknown Instructor'}</p>
-                  <p className="mt-1 text-red-700">
+                <article key={duty.duty_id} className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm">
+                  <p className="font-semibold text-red-200">{duty.instructor_name ?? 'Unknown Instructor'}</p>
+                  <p className="mt-1 text-red-300">
                     {duty.subject ?? '--'} • {duty.exam_date ? format(parseISO(duty.exam_date), 'dd MMM yyyy') : '--'} •{' '}
                     {duty.room_number ?? '--'}
                   </p>
-                  <p className="mt-1 font-medium text-red-700">{duty.lateByMinutes} mins late</p>
+                  <p className="mt-1 font-medium text-red-300">{duty.lateByMinutes} mins late</p>
                 </article>
               ))}
             </div>

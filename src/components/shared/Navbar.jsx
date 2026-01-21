@@ -1,9 +1,20 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { LogOut, ShieldCheck } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { LogOut, ShieldCheck, User2 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import NotificationPanel from '../instructor/NotificationPanel';
 import ConnectionStatus from './ConnectionStatus';
 import { sanitizeText } from '../../lib/utils/sanitize';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Badge } from '../ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 
 function getInitials(nameOrEmail) {
   if (!nameOrEmail) {
@@ -24,12 +35,21 @@ function getInitials(nameOrEmail) {
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [errorMessage, setErrorMessage] = useState('');
   const user = useAuthStore((state) => state.user);
   const role = useAuthStore((state) => state.role);
+  const instructorId = useAuthStore((state) => state.instructorId);
   const logout = useAuthStore((state) => state.logout);
   const name = sanitizeText(user?.user_metadata?.name ?? user?.email ?? 'User');
   const initials = getInitials(name);
+  const pageName = location.pathname.includes('/admin')
+    ? 'Admin Dashboard'
+    : location.pathname.includes('/profile')
+      ? 'Profile'
+      : location.pathname.includes('/instructor')
+        ? 'Instructor Dashboard'
+        : 'Overview';
 
   const handleLogout = async () => {
     setErrorMessage('');
@@ -43,43 +63,66 @@ export default function Navbar() {
     navigate('/login', { replace: true });
   };
 
+  const handleJumpToDuty = (dutyId) => {
+    if (!dutyId) {
+      return;
+    }
+
+    if (!location.pathname.includes('/instructor/dashboard')) {
+      navigate('/instructor/dashboard');
+    }
+
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('instructor:jump-to-duty', { detail: { dutyId } }));
+    }, 120);
+  };
+
   return (
-    <header className="border-b border-gray-200 bg-white">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <div className="flex items-center gap-3">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#1E3A5F] text-white">
-            <ShieldCheck className="h-4 w-4" />
-          </span>
-          <h1 className="text-lg font-semibold text-[#1A1A2E]">Intelligent Invigilation</h1>
+    <header className="sticky top-0 z-40 h-14 border-b border-white/6 bg-[#0A0A0F] px-6">
+      <div className="mx-auto flex h-full w-full max-w-7xl items-center justify-between">
+        <div className="flex items-center">
+          <ShieldCheck className="h-5 w-5 text-amber-400" />
+          <span className="ml-2 hidden text-sm font-semibold text-white/80 sm:inline">InvigilationMS</span>
+          <span className="ml-2 text-sm font-semibold text-white/80 sm:hidden">IMS</span>
+          <span className="mx-4 h-4 w-px bg-white/10" />
+          <span className="hidden text-sm text-white/35 sm:inline">{pageName}</span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          {role === 'instructor' ? <NotificationPanel instructorId={instructorId} onJumpToDuty={handleJumpToDuty} /> : null}
           <ConnectionStatus />
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#1E3A5F] text-sm font-semibold text-white">
-            {initials}
-          </span>
-          <div className="hidden sm:block">
-            <p className="text-sm font-semibold text-[#1A1A2E]">{name}</p>
-            <div className="flex items-center gap-2">
-              <p className="text-xs text-gray-500">{sanitizeText(user?.email)}</p>
-              <span className="rounded-full bg-[#2E86AB]/15 px-2 py-0.5 text-xs font-semibold capitalize text-[#1E3A5F]">
-                {role ?? 'user'}
-              </span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="app-btn-ghost inline-flex items-center gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </button>
+          <span className="h-4 w-px bg-white/10" />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="h-8 w-8 rounded-xl border border-amber-500/20 bg-amber-500/15 text-xs font-semibold text-amber-400 transition-all hover:bg-amber-500/25">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 rounded-xl border border-white/8 bg-[#16161F] p-1 shadow-2xl">
+              <DropdownMenuLabel className="space-y-1 border-b border-white/6 px-3 py-2.5">
+                <p className="text-sm font-medium text-white/80">{name}</p>
+                <div className="flex items-center gap-2 text-xs text-white/35">
+                  <User2 className="h-3.5 w-3.5" />
+                  <Badge className="capitalize border-none bg-transparent p-0 text-white/35" variant="secondary">
+                    {role ?? 'user'}
+                  </Badge>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-transparent" />
+              <DropdownMenuItem onClick={handleLogout} className="rounded-lg px-2 py-1.5 text-sm text-red-400 transition-colors hover:bg-red-500/8 hover:text-red-300 focus:bg-red-500/8 focus:text-red-300">
+                <LogOut className="h-4 w-4" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       {errorMessage ? (
-        <div className="border-t border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 sm:px-6">{errorMessage}</div>
+        <div className="border-t border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300 sm:px-6">{errorMessage}</div>
       ) : null}
     </header>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Lock, Mail, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { clearLoginAttemptWindow, getLoginRateLimitState, registerFailedLoginAttempt } from '../lib/utils/rateLimit';
 import { sanitizeEmail } from '../lib/utils/sanitize';
@@ -10,9 +10,11 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
   const [shake, setShake] = useState(false);
   const [lockState, setLockState] = useState(getLoginRateLimitState());
+  const [hasSubmittedLogin, setHasSubmittedLogin] = useState(false);
   const supabaseHost = (() => {
     const rawUrl = import.meta.env.VITE_SUPABASE_URL;
     if (!rawUrl) {
@@ -31,15 +33,8 @@ export default function Login() {
   const authError = useAuthStore((state) => state.authError);
   const loading = useAuthStore((state) => state.loading);
   const login = useAuthStore((state) => state.login);
-
   useEffect(() => {
-    if (authError) {
-      setErrorMessage(authError);
-    }
-  }, [authError]);
-
-  useEffect(() => {
-    if (!user || !role) {
+    if (!hasSubmittedLogin || !user || !role) {
       return;
     }
 
@@ -51,7 +46,14 @@ export default function Login() {
     if (role === 'instructor') {
       navigate('/instructor/dashboard', { replace: true });
     }
-  }, [user, role, navigate]);
+  }, [hasSubmittedLogin, user, role, navigate]);
+
+
+  useEffect(() => {
+    if (authError) {
+      setErrorMessage(authError);
+    }
+  }, [authError]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -103,120 +105,95 @@ export default function Login() {
       return;
     }
 
+    setHasSubmittedLogin(true);
     clearLoginAttemptWindow();
   };
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      <aside className="hidden bg-gradient-to-br from-[#1E3A5F] via-[#204b7a] to-[#2E86AB] p-10 text-white lg:flex lg:flex-col lg:justify-between">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2">
-            <ShieldCheck className="h-5 w-5" />
-            <p className="text-sm font-semibold">Intelligent Invigilation</p>
-          </div>
-          <h1 className="mt-10 max-w-md text-4xl font-semibold leading-tight tracking-tight">
-            Professional invigilation operations with real-time intelligence
-          </h1>
-          <p className="mt-4 max-w-md text-sm text-blue-100">Plan duties, monitor punctuality, and improve compliance in one dashboard.</p>
-        </div>
+    <div className="app-auth-bg min-h-screen px-4 py-10">
+      <div
+        className="pointer-events-none fixed left-1/2 top-[-200px] h-[400px] w-[600px] -translate-x-1/2"
+        style={{
+          background: 'radial-gradient(ellipse, rgba(245,158,11,0.06), transparent)',
+        }}
+      />
 
-        <ul className="space-y-3 text-sm text-blue-50">
-          <li className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4" />
-            Role-based admin and instructor access
-          </li>
-          <li className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4" />
-            Smart duty balancing and workload insights
-          </li>
-          <li className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4" />
-            Punctuality trends and performance analytics
-          </li>
-        </ul>
-      </aside>
+      <section className="mx-auto mt-[15vh] w-full max-w-sm fade-up rounded-2xl border border-white/8 bg-[#111118] p-8">
+        <span className="mx-auto mb-6 block h-1.5 w-1.5 rounded-full bg-amber-400" />
+        <h1 className="text-center text-2xl text-white/90">Welcome back</h1>
+        <p className="mt-1 text-center text-sm text-white/40">Sign in to continue</p>
 
-      <section className="flex items-center justify-center bg-[#F4F6F9] px-4 py-10">
-        <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
-          <div className="mb-8">
-            <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#1E3A5F] text-white">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-            <h1 className="mt-4 text-2xl font-semibold text-[#1A1A2E]">Welcome back</h1>
-            <p className="mt-2 text-sm text-gray-500">Sign in to continue</p>
+        <form onSubmit={handleSubmit} className={`mt-6 space-y-4 ${shake ? 'animate-shake' : ''}`}>
+          <div>
+            <label htmlFor="email" className="mb-1.5 block text-xs tracking-wide text-white/40">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              autoComplete="email"
+              className={`input-glow w-full rounded-xl border border-white/8 bg-[#16161F] px-4 py-3 text-sm text-white/90 outline-none transition-all duration-200 placeholder:text-white/20 hover:border-white/12 focus:border-amber-500/40 ${fieldErrors.email ? 'border-red-500/40' : ''}`}
+              placeholder="you@univ.edu"
+            />
+            {fieldErrors.email ? <p className="mt-1 text-xs text-red-400">{fieldErrors.email}</p> : null}
           </div>
 
-          <form onSubmit={handleSubmit} className={`space-y-4 ${shake ? 'animate-shake' : ''}`}>
-            <div>
-              <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  required
-                  autoComplete="email"
-                  className={`app-input pl-9 ${fieldErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
-                  placeholder="you@univ.edu"
-                />
-              </div>
-              {fieldErrors.email ? <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p> : null}
+          <div>
+            <label htmlFor="password" className="mb-1.5 block text-xs tracking-wide text-white/40">
+              Password
+            </label>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                autoComplete="current-password"
+                className={`input-glow w-full rounded-xl border border-white/8 bg-[#16161F] px-4 py-3 pr-10 text-sm text-white/90 outline-none transition-all duration-200 placeholder:text-white/20 hover:border-white/12 focus:border-amber-500/40 ${fieldErrors.password ? 'border-red-500/40' : ''}`}
+                placeholder="Enter your password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((previous) => !previous)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 transition-colors hover:text-white/60"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
+            {fieldErrors.password ? <p className="mt-1 text-xs text-red-400">{fieldErrors.password}</p> : null}
+          </div>
 
-            <div>
-              <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required
-                  autoComplete="current-password"
-                  className={`app-input pl-9 ${fieldErrors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
-                  placeholder="Enter your password"
-                />
-              </div>
-              {fieldErrors.password ? <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p> : null}
-            </div>
+          {errorMessage ? <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300">{errorMessage}</p> : null}
 
-            {errorMessage ? (
-              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{errorMessage}</p>
-            ) : null}
+          <button type="submit" disabled={loading || lockState.isLocked} className="btn-press mt-6 h-11 w-full rounded-xl bg-amber-500 text-sm font-semibold text-[#0A0A0F] transition-all duration-150 hover:bg-amber-400 disabled:opacity-50">
+            {loading ? 'Signing in...' : lockState.isLocked ? `Locked (${Math.ceil(lockState.remainingMs / 1000)}s)` : 'Sign in'}
+          </button>
 
-            <button type="submit" disabled={loading || lockState.isLocked} className="app-btn-primary flex w-full items-center justify-center gap-2">
-              {loading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/60 border-t-white" /> : null}
-              {loading ? 'Signing in...' : lockState.isLocked ? `Locked (${Math.ceil(lockState.remainingMs / 1000)}s)` : 'Sign in'}
-            </button>
+          <div className="mt-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-white/6" />
+            <span className="text-xs text-white/20">or</span>
+            <div className="h-px flex-1 bg-white/6" />
+          </div>
 
-            <div className="flex items-center gap-3 py-1">
-              <div className="h-px flex-1 bg-gray-200" />
-              <span className="text-xs font-medium uppercase tracking-wide text-gray-400">or</span>
-              <div className="h-px flex-1 bg-gray-200" />
-            </div>
+          <button
+            type="button"
+            className="btn-press mt-2 h-11 w-full rounded-xl border border-white/8 text-sm text-white/50 transition-all duration-150 hover:border-white/15 hover:text-white/70"
+            onClick={() => navigate('/register')}
+          >
+            Request Access
+          </button>
 
-            <button
-              type="button"
-              className="w-full text-sm text-[#2E86AB] transition hover:underline"
-              onClick={() => navigate('/register')}
-            >
-              Request Access
-            </button>
-
-            {import.meta.env.DEV ? (
-              <p className="pt-2 text-xs text-gray-500">
-                Dev info: Supabase {supabaseHost ? `→ ${supabaseHost}` : 'is not configured (missing VITE_SUPABASE_URL)'}.
-              </p>
-            ) : null}
-          </form>
-        </div>
+          {import.meta.env.DEV ? (
+            <p className="pt-1 text-xs text-white/30">
+              Dev info: Supabase {supabaseHost ? `→ ${supabaseHost}` : 'is not configured (missing VITE_SUPABASE_URL)'}.
+            </p>
+          ) : null}
+        </form>
       </section>
     </div>
   );

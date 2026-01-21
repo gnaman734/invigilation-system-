@@ -34,7 +34,7 @@ function toCsvValue(value) {
 }
 
 function ChartSkeleton() {
-  return <div className="h-[300px] animate-pulse rounded-xl bg-slate-100" />;
+  return <div className="skeleton h-[300px] rounded-xl" />;
 }
 
 function animateNumber(from, to, onFrame) {
@@ -229,11 +229,11 @@ export default function AnalyticsDashboard({ instructors = [], duties = [], onRe
     (metrics.mostActive?.monthDuties ?? 0) >= (metrics.mostActive?.previousMonthDuties ?? 0) ? 'up' : 'down';
 
   return (
-    <section className="space-y-6">
-      <div className="app-card flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <section className="fade-up space-y-6">
+      <div className="app-card card-interactive flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-semibold text-[#1A1A2E]">Analytics & Insights</h2>
-          <p className="text-sm text-gray-500">Real-time performance overview</p>
+          <h2 className="text-2xl text-white/85">Analytics & Insights</h2>
+          <p className="text-sm text-white/30">Real-time performance overview</p>
         </div>
         <button type="button" onClick={handleExportCsv} className="app-btn-ghost inline-flex items-center gap-2" disabled={exporting}>
           <Download className="h-4 w-4" />
@@ -241,8 +241,8 @@ export default function AnalyticsDashboard({ instructors = [], duties = [], onRe
         </button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className={`rounded-2xl transition-colors duration-500 ${highlightedCards.dutiesCurrent ? 'bg-blue-50' : ''}`}>
+      <div className="stagger grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className={`transition-colors duration-500 ${highlightedCards.dutiesCurrent ? 'ring-1 ring-amber-500/20 rounded-2xl' : ''}`}>
           <StatsCard
             title="Total Duties This Month"
             value={Math.round(animatedMetrics.dutiesCurrent)}
@@ -253,7 +253,7 @@ export default function AnalyticsDashboard({ instructors = [], duties = [], onRe
             trendDirection={dutiesTrendDirection}
           />
         </div>
-        <div className={`rounded-2xl transition-colors duration-500 ${highlightedCards.punctualityCurrent ? 'bg-green-50' : ''}`}>
+        <div className={`transition-colors duration-500 ${highlightedCards.punctualityCurrent ? 'ring-1 ring-amber-500/20 rounded-2xl' : ''}`}>
           <StatsCard
             title="Overall Punctuality %"
             value={`${Number(animatedMetrics.punctualityCurrent).toFixed(2)}%`}
@@ -273,7 +273,7 @@ export default function AnalyticsDashboard({ instructors = [], duties = [], onRe
           trend={`${Math.abs((metrics.mostActive?.monthDuties ?? 0) - (metrics.mostActive?.previousMonthDuties ?? 0))} vs last month`}
           trendDirection={activeTrendDirection}
         />
-        <div className={`rounded-2xl transition-colors duration-500 ${highlightedCards.flaggedCount ? 'bg-red-50' : ''}`}>
+        <div className={`transition-colors duration-500 ${highlightedCards.flaggedCount ? 'ring-1 ring-amber-500/20 rounded-2xl' : ''}`}>
           <StatsCard
             title="Flagged Instructors"
             value={Math.round(animatedMetrics.flaggedCount)}

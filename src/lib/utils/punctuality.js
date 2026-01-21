@@ -65,14 +65,14 @@ export function getPunctualityTrend(percentage) {
   const safePercentage = Number(percentage ?? 0);
 
   if (safePercentage >= PUNCTUALITY_EXCELLENT_THRESHOLD) {
-    return '🟢 Excellent';
+    return 'Excellent';
   }
 
   if (safePercentage >= PUNCTUALITY_GOOD_THRESHOLD) {
-    return '🟡 Good';
+    return 'Good';
   }
 
-  return '🔴 Needs Improvement';
+  return 'Needs Improvement';
 }
 
 export function getMinutesLate(reportingTime, arrivalTime) {

@@ -1,25 +1,29 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle2, Info, TriangleAlert, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
-const TOAST_DURATION_MS = 3000;
 const ToastContext = createContext(null);
+const TOAST_DURATION_MS = 3500;
 
-const TOAST_STYLES = {
+const TOAST_META = {
   success: {
-    container: 'border-green-200 bg-green-50 text-green-800',
-    icon: CheckCircle2,
+    title: 'Success',
+    dot: 'bg-green-400',
+    progress: 'bg-green-500',
   },
   error: {
-    container: 'border-red-200 bg-red-50 text-red-800',
-    icon: AlertCircle,
-  },
-  info: {
-    container: 'border-blue-200 bg-blue-50 text-blue-800',
-    icon: Info,
+    title: 'Error',
+    dot: 'bg-red-400',
+    progress: 'bg-red-500',
   },
   warning: {
-    container: 'border-yellow-200 bg-yellow-50 text-yellow-800',
-    icon: TriangleAlert,
+    title: 'Warning',
+    dot: 'bg-amber-400',
+    progress: 'bg-amber-500',
+  },
+  info: {
+    title: 'Info',
+    dot: 'bg-indigo-400',
+    progress: 'bg-indigo-500',
   },
 };
 
@@ -27,7 +31,7 @@ export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
   const removeToast = useCallback((id) => {
-    setToasts((previous) => previous.filter((toast) => toast.id !== id));
+    setToasts((previous) => previous.filter((toastItem) => toastItem.id !== id));
   }, []);
 
   const addToast = useCallback(
@@ -45,29 +49,32 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={contextValue}>
       {children}
-
-      <div className="pointer-events-none fixed right-4 top-4 z-[100] flex w-full max-w-sm flex-col gap-2">
-        {toasts.map((toast) => {
-          const style = TOAST_STYLES[toast.type] ?? TOAST_STYLES.info;
-          const Icon = style.icon;
+      <div className="fixed right-4 top-4 z-50 flex w-72 flex-col gap-3">
+        {toasts.map((toastItem) => {
+          const meta = TOAST_META[toastItem.type] ?? TOAST_META.info;
 
           return (
             <div
-              key={toast.id}
-              className={`pointer-events-auto animate-[toast-slide-in_220ms_ease-out] rounded-xl border px-4 py-3 shadow-lg ${style.container}`}
+              key={toastItem.id}
+              className="fade-up relative flex items-start gap-3 rounded-2xl border border-white/10 bg-[#16161F] px-4 py-3.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
             >
-              <div className="flex items-start gap-3">
-                <Icon className="mt-0.5 h-4 w-4 shrink-0" />
-                <p className="flex-1 text-sm font-medium">{toast.message}</p>
-                <button
-                  type="button"
-                  onClick={() => removeToast(toast.id)}
-                  className="rounded-md p-1 text-current/70 transition hover:bg-white/50 hover:text-current"
-                  aria-label="Dismiss notification"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+              <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${meta.dot}`} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-white/85">{meta.title}</p>
+                <p className="mt-0.5 text-xs text-white/40">{toastItem.message}</p>
               </div>
+              <button
+                type="button"
+                onClick={() => removeToast(toastItem.id)}
+                className="text-white/20 transition-colors hover:text-white/60"
+                aria-label="Dismiss toast"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+              <span
+                className={`absolute bottom-0 left-0 h-[2px] rounded-b-2xl ${meta.progress}`}
+                style={{ width: '100%', animation: `toast-progress ${TOAST_DURATION_MS}ms linear forwards` }}
+              />
             </div>
           );
         })}

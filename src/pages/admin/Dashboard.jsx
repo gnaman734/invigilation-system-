@@ -3,6 +3,8 @@ import {
   BarChart2,
   ClipboardList,
   Clock3,
+  DoorOpen,
+  GraduationCap,
   LayoutDashboard,
   Menu,
   Scale,
@@ -14,6 +16,7 @@ import StatsCard from '../../components/shared/StatsCard';
 import { useAuthStore } from '../../store/authStore';
 import { useDuties } from '../../lib/hooks/useDuties';
 import { useInstructors } from '../../lib/hooks/useInstructors';
+import { useExamsRooms } from '../../lib/hooks/useExamsRooms';
 import {
   calculateAverage,
   DEFAULT_LATE_ARRIVAL_THRESHOLD,
@@ -30,9 +33,13 @@ const WorkloadPanel = lazy(() => import('../../components/admin/WorkloadPanel'))
 const PunctualityPanel = lazy(() => import('../../components/admin/PunctualityPanel'));
 const AnalyticsDashboard = lazy(() => import('../../components/admin/AnalyticsDashboard'));
 const PendingRequests = lazy(() => import('../../components/admin/PendingRequests'));
+const FloorRoomManager = lazy(() => import('../../components/admin/FloorRoomManager'));
+const ExamManagement = lazy(() => import('./ExamManagement'));
 
 const sections = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'exams', label: 'Exams', icon: GraduationCap },
+  { id: 'rooms', label: 'Rooms', icon: DoorOpen },
   { id: 'analytics', label: 'Analytics', icon: BarChart2 },
   { id: 'requests', label: 'Requests', icon: UserPlus },
   { id: 'duties', label: 'Duties', icon: ClipboardList },
@@ -61,7 +68,7 @@ function TabBadge({ value }) {
   }
 
   return (
-    <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">
+    <span className="inline-flex min-w-6 items-center justify-center rounded-full border border-red-500/30 bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-300">
       {value}
     </span>
   );
@@ -75,6 +82,7 @@ export default function AdminDashboard() {
   const [openDutyCreateTrigger, setOpenDutyCreateTrigger] = useState(0);
   const [openInstructorCreateTrigger, setOpenInstructorCreateTrigger] = useState(0);
   const { allDuties, loading: dutiesLoading, error: dutiesError, fetchAllDuties } = useDuties();
+  const { exams, fetchAllExams } = useExamsRooms();
   const {
     instructors,
     pendingRequests,
@@ -92,7 +100,8 @@ export default function AdminDashboard() {
     fetchAllDuties();
     fetchAllInstructors();
     fetchPendingRequests();
-  }, [fetchAllDuties, fetchAllInstructors, fetchPendingRequests]);
+    fetchAllExams();
+  }, [fetchAllDuties, fetchAllInstructors, fetchPendingRequests, fetchAllExams]);
 
   const panelLoading = dutiesLoading || instructorsLoading;
   const panelError = dutiesError || instructorsError;
@@ -122,6 +131,10 @@ export default function AdminDashboard() {
     return allDuties.filter((duty) => isCurrentMonthDuty(duty.exam_date)).length;
   }, [allDuties]);
 
+  const totalExamsThisMonth = useMemo(() => {
+    return (exams ?? []).filter((exam) => isCurrentMonthDuty(exam.exam_date)).length;
+  }, [exams]);
+
   const overallPunctuality = useMemo(() => {
     const totalOnTime = instructors.reduce((sum, instructor) => sum + Number(instructor.on_time_arrivals ?? 0), 0);
     const totalDuties = instructors.reduce((sum, instructor) => sum + Number(instructor.total_duties ?? 0), 0);
@@ -150,20 +163,35 @@ export default function AdminDashboard() {
     fetchAllInstructors();
   };
 
-  const sectionFallback = <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />;
+  const sectionFallback = <div className="h-64 animate-pulse rounded-2xl bg-muted" />;
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
-      <header className="app-card mb-6 p-5">
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-3 fade-up">
+        <div>
+          <h1 className="text-2xl text-white/85">Overview</h1>
+          <p className="mt-0.5 text-sm text-white/30">{new Date().toLocaleDateString(undefined, { dateStyle: 'full' })}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="button" className="btn-press rounded-xl border border-white/10 px-3 py-2 text-xs text-white/50 transition-all hover:border-white/20 hover:text-white/70">
+            Export
+          </button>
+          <button type="button" onClick={openCreateDutyModal} className="btn-press rounded-xl bg-amber-500 px-3 py-2 text-xs font-semibold text-black transition-all hover:bg-amber-400">
+            Create Duty
+          </button>
+        </div>
+      </header>
+
+      <header className="app-card mb-6 p-5 fade-up">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="app-label">Admin Panel</p>
-            <h1 className="mt-1 text-2xl font-semibold text-[#1A1A2E]">{adminName}</h1>
-            <p className="mt-1 text-sm text-gray-600">Role: {role === 'admin' ? 'Admin' : role ?? '--'}</p>
+            <h1 className="mt-1 text-3xl">{adminName}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Role: {role === 'admin' ? 'Admin' : role ?? '--'}</p>
           </div>
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-lg bg-[#1E3A5F] px-3 py-2 text-sm font-medium text-white lg:hidden"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground lg:hidden"
             onClick={() => setSidebarOpen((previous) => !previous)}
           >
             {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -172,19 +200,9 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[260px,1fr]">
-        <aside className={`${sidebarOpen ? 'block' : 'hidden'} rounded-2xl bg-[#1E3A5F] p-4 text-white shadow-sm lg:block`}>
-          <div className="mb-4 flex items-center gap-3 border-b border-white/20 pb-4">
-            <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white/15">
-              <LayoutDashboard className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold">Invigilation</p>
-              <p className="text-xs text-blue-100">Operations Suite</p>
-            </div>
-          </div>
-
-          <nav className="space-y-1">
+      <div className="grid gap-6 lg:grid-cols-[224px,1fr]">
+        <aside className={`${sidebarOpen ? 'block' : 'hidden'} min-h-screen w-56 border-r border-white/6 bg-[#0A0A0F] pt-4 text-foreground lg:block`}>
+          <nav className="flex-1 space-y-1 px-3">
             {sections.map((section) => {
               const Icon = section.icon;
 
@@ -193,12 +211,14 @@ export default function AdminDashboard() {
                   key={section.id}
                   type="button"
                   onClick={() => navigateTab(section.id)}
-                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors duration-150 ease-in-out ${
-                    activeSection === section.id ? 'bg-[#2E86AB] text-white' : 'text-blue-50 hover:bg-white/10'
+                  className={`group flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-all duration-150 ${
+                    activeSection === section.id
+                      ? 'border-l-2 border-amber-400 bg-white/6 pl-[10px] font-medium text-white/90'
+                      : 'text-white/40 hover:bg-white/4 hover:text-white/70'
                   }`}
                 >
                   <span className="inline-flex items-center gap-2">
-                    <Icon className="h-4 w-4" />
+                    <Icon className={`h-4 w-4 transition-colors ${activeSection === section.id ? 'text-amber-400' : 'group-hover:text-white/70'}`} />
                     {section.label}
                   </span>
 
@@ -209,16 +229,17 @@ export default function AdminDashboard() {
                 </button>
               );
             })}
+            <div className="mx-3 my-2 h-px bg-white/5" />
           </nav>
         </aside>
 
         <main className="min-w-0">
-          <div key={activeSection} className="animate-[fade-in-up_220ms_ease-out]">
+          <div key={activeSection} className="fade-up">
           {activeSection === 'overview' ? (
             <ErrorBoundary>
               <Suspense fallback={sectionFallback}>
-                <section className="space-y-6">
-              <div className="app-card flex flex-wrap items-center gap-2 p-4">
+                <section className="space-y-6 fade-up">
+              <div className="app-card fade-up flex flex-wrap items-center gap-2 p-4">
                 <button type="button" onClick={openCreateDutyModal} className="app-btn-primary">
                   Create Duty
                 </button>
@@ -239,7 +260,7 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+              <div className="stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                 <StatsCard
                   title="Total Instructors"
                   value={instructors.length}
@@ -253,6 +274,14 @@ export default function AdminDashboard() {
                   subtitle="Scheduled in current month"
                   color="purple"
                   onClick={() => navigateTab('duties')}
+                />
+                <StatsCard
+                  title="Total Exams This Month"
+                  value={totalExamsThisMonth}
+                  subtitle="Scheduled exams"
+                  color="purple"
+                  icon={GraduationCap}
+                  onClick={() => navigateTab('exams')}
                 />
                 <StatsCard
                   title="Overall Punctuality %"
@@ -278,7 +307,7 @@ export default function AdminDashboard() {
                 />
               </div>
 
-                  <div className="grid gap-6 xl:grid-cols-2">
+                  <div className="mt-6 grid gap-4 xl:grid-cols-2">
                     <WorkloadPanel
                       instructors={instructors}
                       loading={panelLoading}
@@ -317,6 +346,20 @@ export default function AdminDashboard() {
             <ErrorBoundary>
               <Suspense fallback={sectionFallback}>
                 <AnalyticsDashboard instructors={instructors} duties={allDuties} onRefresh={refreshAdminData} />
+              </Suspense>
+            </ErrorBoundary>
+          ) : null}
+          {activeSection === 'exams' ? (
+            <ErrorBoundary>
+              <Suspense fallback={sectionFallback}>
+                <ExamManagement />
+              </Suspense>
+            </ErrorBoundary>
+          ) : null}
+          {activeSection === 'rooms' ? (
+            <ErrorBoundary>
+              <Suspense fallback={sectionFallback}>
+                <FloorRoomManager />
               </Suspense>
             </ErrorBoundary>
           ) : null}
@@ -375,7 +418,7 @@ export default function AdminDashboard() {
         </main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-7 border-t border-slate-200 bg-white p-2 shadow-[0_-2px_10px_rgba(0,0,0,0.08)] lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-7 border-t border-border bg-card p-2 shadow-[0_-2px_10px_rgba(0,0,0,0.3)] lg:hidden">
         {sections.map((section) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
@@ -386,7 +429,7 @@ export default function AdminDashboard() {
               type="button"
               onClick={() => navigateTab(section.id)}
               className={`flex flex-col items-center gap-1 rounded-lg py-1 text-[11px] font-medium transition-colors duration-150 ease-in-out ${
-                isActive ? 'bg-[#2E86AB]/15 text-[#1E3A5F]' : 'text-slate-500'
+                isActive ? 'bg-primary/15 text-primary' : 'text-muted-foreground'
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -399,7 +442,7 @@ export default function AdminDashboard() {
       <button
         type="button"
         onClick={openCreateDutyModal}
-        className="fixed bottom-20 right-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#1E3A5F] text-white shadow-lg transition-all duration-150 ease-in-out active:scale-95 lg:hidden"
+        className="fixed bottom-20 right-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-150 ease-in-out active:scale-95 lg:hidden"
         aria-label="Create duty"
       >
         <ClipboardList className="h-5 w-5" />

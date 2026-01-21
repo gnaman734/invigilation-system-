@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, Pencil, Trash2 } from 'lucide-react';
 import { useDuties } from '../../lib/hooks/useDuties';
 import { useExamsRooms } from '../../lib/hooks/useExamsRooms';
 import { useInstructors } from '../../lib/hooks/useInstructors';
@@ -228,9 +228,9 @@ export default function DutyManager({ openCreateTrigger = 0 }) {
   };
 
   return (
-    <section className="app-card animate-[fade-in-up_240ms_ease-out] space-y-4 p-4">
+    <section className="app-card fade-up space-y-4 p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-lg font-semibold text-slate-900">Duty Management</h2>
+        <h2 className="text-2xl">Duty Management</h2>
         <button
           type="button"
           onClick={openCreateModal}
@@ -241,9 +241,11 @@ export default function DutyManager({ openCreateTrigger = 0 }) {
         </button>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3 sm:flex-row">
+      <div className="flex items-center justify-between border-b border-white/6 px-5 py-4">
+        <p className="text-sm font-medium text-white/70">Duty Schedule</p>
+        <div className="flex flex-col gap-3 sm:flex-row">
         <div className="w-full">
-          <label htmlFor="duty-search-filter" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-600">
+          <label htmlFor="duty-search-filter" className="mb-1 block text-xs font-medium uppercase tracking-wide text-white/35">
             Search
           </label>
           <input
@@ -252,12 +254,12 @@ export default function DutyManager({ openCreateTrigger = 0 }) {
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Subject, room, instructor..."
-            className="app-input"
+            className="app-input w-52 px-3 py-2 text-xs text-white/60"
           />
         </div>
 
         <div className="w-full">
-          <label htmlFor="duty-date-filter" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-600">
+          <label htmlFor="duty-date-filter" className="mb-1 block text-xs font-medium uppercase tracking-wide text-white/35">
             Filter by Date
           </label>
           <input
@@ -265,25 +267,26 @@ export default function DutyManager({ openCreateTrigger = 0 }) {
             type="date"
             value={dateFilter}
             onChange={(event) => setDateFilter(event.target.value)}
-            className="app-input"
+            className="app-input px-3 py-2 text-xs text-white/60"
           />
         </div>
 
         <div className="w-full sm:max-w-xs">
-          <label htmlFor="duty-status-filter" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-600">
+          <label htmlFor="duty-status-filter" className="mb-1 block text-xs font-medium uppercase tracking-wide text-white/35">
             Filter by Status
           </label>
           <select
             id="duty-status-filter"
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="app-input"
+            className="app-input px-3 py-2 text-xs text-white/60"
           >
             <option value="all">All</option>
             <option value="pending">Pending</option>
             <option value="on-time">On-Time</option>
             <option value="late">Late</option>
           </select>
+        </div>
         </div>
       </div>
 
@@ -305,7 +308,7 @@ export default function DutyManager({ openCreateTrigger = 0 }) {
         ))}
       </div>
 
-      {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p> : null}
 
       {loading ? <TableSkeleton rows={5} /> : null}
 
@@ -323,14 +326,14 @@ export default function DutyManager({ openCreateTrigger = 0 }) {
         <>
           <div className="space-y-3 md:hidden">
             {paginatedDuties.map((duty) => (
-              <article key={duty.duty_id} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Subject</p>
-                <p className="mt-1 font-semibold text-gray-800">{duty.subject}</p>
+              <article key={duty.duty_id} className="app-card card-interactive rounded-xl p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-white/35">Subject</p>
+                <p className="mt-1 font-semibold text-white/80">{duty.subject}</p>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                  <p><span className="text-gray-500">Date:</span> {duty.exam_date ? format(parseISO(duty.exam_date), 'dd MMM yyyy') : '--'}</p>
-                  <p><span className="text-gray-500">Room:</span> {duty.room_number}</p>
-                  <p><span className="text-gray-500">Instructor:</span> {duty.instructor_name}</p>
-                  <p><span className="text-gray-500">Time:</span> {formatTimeDisplay(duty.reporting_time)}</p>
+                  <p><span className="text-white/35">Date:</span> {duty.exam_date ? format(parseISO(duty.exam_date), 'dd MMM yyyy') : '--'}</p>
+                  <p><span className="text-white/35">Room:</span> {duty.room_number}</p>
+                  <p><span className="text-white/35">Instructor:</span> {duty.instructor_name}</p>
+                  <p><span className="text-white/35">Time:</span> {formatTimeDisplay(duty.reporting_time)}</p>
                 </div>
                 <div className="mt-3 flex items-center justify-between">
                   <StatusBadge status={duty.status} />
@@ -359,8 +362,8 @@ export default function DutyManager({ openCreateTrigger = 0 }) {
             </thead>
             <tbody>
               {paginatedDuties.map((duty) => (
-                <tr key={duty.duty_id}>
-                  <td className="font-medium text-gray-800">{duty.subject}</td>
+                <tr key={duty.duty_id} className="group">
+                  <td className="font-medium text-white/80">{duty.subject}</td>
                   <td>
                     {duty.exam_date ? format(parseISO(duty.exam_date), 'dd MMM yyyy') : '--'}
                   </td>
@@ -374,22 +377,22 @@ export default function DutyManager({ openCreateTrigger = 0 }) {
                     <StatusBadge status={duty.status} />
                   </td>
                   <td>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                       <button
                         type="button"
                         onClick={() => openEditModal(duty)}
                         disabled={!isOnline}
-                        className="app-btn-ghost px-3 py-1.5 text-xs"
+                        className="rounded-lg p-1.5 text-white/30 transition-colors hover:bg-white/8 hover:text-white/70"
                       >
-                        Edit
+                        <Pencil className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
                         onClick={() => setDeleteTarget(duty)}
                         disabled={!isOnline}
-                        className="app-btn-danger px-3 py-1.5 text-xs"
+                        className="rounded-lg p-1.5 text-white/30 transition-colors hover:bg-red-500/10 hover:text-red-400"
                       >
-                        Delete
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
@@ -405,14 +408,14 @@ export default function DutyManager({ openCreateTrigger = 0 }) {
       <Modal isOpen={isModalOpen} onClose={closeModal} title={editingDuty ? 'Edit Duty' : 'Create Duty'}>
         <form className={`space-y-3 ${shake ? 'animate-shake' : ''}`} onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="duty-exam" className="mb-1 block text-sm font-medium text-slate-700">
+            <label htmlFor="duty-exam" className="mb-1 block text-xs tracking-wide text-white/40">
               Exam
             </label>
             <select
               id="duty-exam"
               value={form.exam_id}
               onChange={(event) => setForm((previous) => ({ ...previous, exam_id: event.target.value }))}
-              className={`app-input ${fieldErrors.exam_id ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
+              className={`app-input ${fieldErrors.exam_id ? 'border-red-500/40' : ''}`}
               required
             >
               <option value="">Select exam</option>
@@ -422,18 +425,18 @@ export default function DutyManager({ openCreateTrigger = 0 }) {
                 </option>
               ))}
             </select>
-            {fieldErrors.exam_id ? <p className="mt-1 text-xs text-red-600">{fieldErrors.exam_id}</p> : null}
+            {fieldErrors.exam_id ? <p className="mt-1 text-xs text-red-400">{fieldErrors.exam_id}</p> : null}
           </div>
 
           <div>
-            <label htmlFor="duty-room" className="mb-1 block text-sm font-medium text-slate-700">
+            <label htmlFor="duty-room" className="mb-1 block text-xs tracking-wide text-white/40">
               Room
             </label>
             <select
               id="duty-room"
               value={form.room_id}
               onChange={(event) => setForm((previous) => ({ ...previous, room_id: event.target.value }))}
-              className={`app-input ${fieldErrors.room_id ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
+              className={`app-input ${fieldErrors.room_id ? 'border-red-500/40' : ''}`}
               required
             >
               <option value="">Select room</option>
@@ -443,18 +446,18 @@ export default function DutyManager({ openCreateTrigger = 0 }) {
                 </option>
               ))}
             </select>
-            {fieldErrors.room_id ? <p className="mt-1 text-xs text-red-600">{fieldErrors.room_id}</p> : null}
+            {fieldErrors.room_id ? <p className="mt-1 text-xs text-red-400">{fieldErrors.room_id}</p> : null}
           </div>
 
           <div>
-            <label htmlFor="duty-instructor" className="mb-1 block text-sm font-medium text-slate-700">
+            <label htmlFor="duty-instructor" className="mb-1 block text-xs tracking-wide text-white/40">
               Instructor
             </label>
             <select
               id="duty-instructor"
               value={form.instructor_id}
               onChange={(event) => setForm((previous) => ({ ...previous, instructor_id: event.target.value }))}
-              className={`app-input ${fieldErrors.instructor_id ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
+              className={`app-input ${fieldErrors.instructor_id ? 'border-red-500/40' : ''}`}
               required
             >
               <option value="">Select instructor</option>
@@ -464,13 +467,13 @@ export default function DutyManager({ openCreateTrigger = 0 }) {
                 </option>
               ))}
             </select>
-            {fieldErrors.instructor_id ? <p className="mt-1 text-xs text-red-600">{fieldErrors.instructor_id}</p> : null}
+            {fieldErrors.instructor_id ? <p className="mt-1 text-xs text-red-400">{fieldErrors.instructor_id}</p> : null}
           </div>
 
-          <div className="space-y-2 rounded-xl border border-gray-100 bg-gray-50 p-3">
-            <p className="text-sm font-medium text-slate-800">Smart Suggest</p>
+          <div className="space-y-2 rounded-xl border border-white/8 bg-[#16161F] p-3">
+            <p className="text-sm font-medium text-white/75">Smart Suggest</p>
             <div>
-              <label htmlFor="suggestion-department" className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-600">
+              <label htmlFor="suggestion-department" className="mb-1 block text-xs font-medium uppercase tracking-wide text-white/35">
                 Department Filter (Optional)
               </label>
               <select
@@ -498,11 +501,11 @@ export default function DutyManager({ openCreateTrigger = 0 }) {
             </button>
 
             {suggestionResult?.instructor ? (
-              <div className="rounded-md border border-green-200 bg-green-50 px-3 py-3 text-sm">
-                <p className="font-semibold text-green-900">{suggestionResult.instructor.name}</p>
-                <p className="mt-1 text-green-800">Current duties: {suggestionResult.instructor.total_duties ?? 0}</p>
-                <p className="mt-1 text-green-800">Variance: {suggestionResult.variance.toFixed(2)}</p>
-                <p className="mt-1 text-green-800">{suggestionResult.suggestion} - Best choice</p>
+              <div className="rounded-md border border-green-500/20 bg-green-500/10 px-3 py-3 text-sm">
+                <p className="font-semibold text-green-300">{suggestionResult.instructor.name}</p>
+                <p className="mt-1 text-green-200">Current duties: {suggestionResult.instructor.total_duties ?? 0}</p>
+                <p className="mt-1 text-green-200">Variance: {suggestionResult.variance.toFixed(2)}</p>
+                <p className="mt-1 text-green-200">{suggestionResult.suggestion} - Best choice</p>
                 <button
                   type="button"
                   onClick={() =>
@@ -511,7 +514,7 @@ export default function DutyManager({ openCreateTrigger = 0 }) {
                       instructor_id: suggestionResult.instructor.instructor_id,
                     }))
                   }
-                  className="mt-2 rounded-lg bg-green-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-green-600"
+                  className="mt-2 rounded-lg border border-green-500/20 bg-green-500/15 px-3 py-1.5 text-xs font-semibold text-green-100 transition hover:bg-green-500/25"
                 >
                   Use This Instructor
                 </button>
@@ -519,12 +522,12 @@ export default function DutyManager({ openCreateTrigger = 0 }) {
             ) : null}
 
             {suggestionMessage ? (
-              <p className="rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">{suggestionMessage}</p>
+              <p className="rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-300">{suggestionMessage}</p>
             ) : null}
           </div>
 
           <div>
-            <label htmlFor="duty-reporting-time" className="mb-1 block text-sm font-medium text-slate-700">
+            <label htmlFor="duty-reporting-time" className="mb-1 block text-xs tracking-wide text-white/40">
               Reporting Time
             </label>
             <input
@@ -532,14 +535,14 @@ export default function DutyManager({ openCreateTrigger = 0 }) {
               type="time"
               value={form.reporting_time}
               onChange={(event) => setForm((previous) => ({ ...previous, reporting_time: event.target.value }))}
-              className={`app-input ${fieldErrors.reporting_time ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
+              className={`app-input ${fieldErrors.reporting_time ? 'border-red-500/40' : ''}`}
               required
             />
-            {fieldErrors.reporting_time ? <p className="mt-1 text-xs text-red-600">{fieldErrors.reporting_time}</p> : null}
+            {fieldErrors.reporting_time ? <p className="mt-1 text-xs text-red-400">{fieldErrors.reporting_time}</p> : null}
           </div>
 
           {formError ? (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p>
+            <p className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300">{formError}</p>
           ) : null}
 
           <div className="flex items-center justify-end gap-3">

@@ -39,9 +39,9 @@ function TrendTooltip({ active, payload }) {
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-md">
-      <p className="font-semibold text-[#1A1A2E]">{point.monthLabel}</p>
-      <p className="mt-1 text-gray-700">{point.punctuality.toFixed(2)}% on-time in {point.monthLabel}</p>
+    <div className="rounded-xl border border-white/10 bg-[#16161F] px-3 py-2 text-sm shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+      <p className="text-[11px] font-semibold text-white/85">{point.monthLabel}</p>
+      <p className="mt-1 text-[11px] text-white/50">{point.punctuality.toFixed(2)}% on-time in {point.monthLabel}</p>
     </div>
   );
 }
@@ -73,13 +73,13 @@ function PunctualityTrendChart({ duties = [] }) {
   const currentMonthPoint = chartData[chartData.length - 1];
 
   return (
-    <section className="app-card">
+    <section className="app-card card-interactive fade-up p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-[#1A1A2E]">Punctuality Trend</h3>
-          <p className="text-sm text-gray-500">Last 6 months on-time arrival rate</p>
+          <h3 className="text-sm font-medium text-white/70">Punctuality Trend</h3>
+          <p className="mt-0.5 text-xs text-white/30">Last 6 months on-time arrival rate</p>
         </div>
-        <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
+        <span className="rounded-lg border border-white/8 bg-white/5 px-2 py-1 text-xs text-white/40">
           {currentMonthPoint?.monthLabel ?? 'Current'}: {currentMonthPoint?.punctuality?.toFixed(2) ?? '0.00'}%
         </span>
       </div>
@@ -92,24 +92,25 @@ function PunctualityTrendChart({ duties = [] }) {
         <div className="mt-4 h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-              <XAxis dataKey="monthLabel" tick={{ fill: '#6B7280', fontSize: 12 }} />
-              <YAxis domain={[0, 100]} tick={{ fill: '#6B7280', fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="1 4" stroke="rgba(255,255,255,0.05)" vertical={false} />
+              <XAxis dataKey="monthLabel" tick={{ fill: 'rgba(255,255,255,0.25)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis domain={[0, 100]} tick={{ fill: 'rgba(255,255,255,0.25)', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip content={<TrendTooltip />} />
               <Legend verticalAlign="bottom" height={24} />
               <ReferenceLine
                 y={TARGET_PUNCTUALITY}
-                stroke="#F5A623"
-                strokeDasharray="6 4"
-                label={{ value: 'Target', fill: '#8f5d00', position: 'insideTopRight' }}
+                stroke="rgba(255,255,255,0.12)"
+                strokeDasharray="3 4"
+                label={{ value: 'Target', fill: 'rgba(255,255,255,0.25)', fontSize: 10, position: 'insideTopRight' }}
               />
-              <Area type="monotone" dataKey="punctuality" fill="#27AE60" fillOpacity={0.1} stroke="none" name="Punctuality Area" />
+              <Area type="monotone" dataKey="punctuality" fill="rgba(245,158,11,0.15)" fillOpacity={1} stroke="none" name="Punctuality Area" />
               <Line
                 type="monotone"
                 dataKey="punctuality"
-                stroke="#27AE60"
-                strokeWidth={3}
-                dot={{ r: 4, fill: '#27AE60' }}
+                stroke="#F59E0B"
+                strokeWidth={1.5}
+                dot={{ fill: '#F59E0B', strokeWidth: 0, r: 3 }}
+                activeDot={{ r: 5, fill: '#F59E0B', strokeWidth: 2, stroke: 'rgba(245,158,11,0.3)' }}
                 name="On-time %"
               />
             </LineChart>

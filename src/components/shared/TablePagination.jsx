@@ -5,8 +5,8 @@ export default function TablePagination({ totalItems, page, pageSize = 10, onPag
   }
 
   return (
-    <div className="flex items-center justify-between border-t border-gray-100 px-3 py-3 text-sm">
-      <p className="text-gray-500">
+    <div className="flex items-center justify-between border-t border-white/6 px-3 py-3 text-sm">
+      <p className="text-white/35">
         Page {page} of {totalPages}
       </p>
       <div className="flex items-center gap-2">

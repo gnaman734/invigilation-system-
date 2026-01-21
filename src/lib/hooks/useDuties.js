@@ -71,6 +71,80 @@ function toFriendlyError(message, fallback) {
   return fallback;
 }
 
+function mapDutyFromBaseRow(row) {
+  return {
+    duty_id: row.id,
+    exam_id: row.exam_id,
+    subject: row.exams?.subject ?? '',
+    exam_date: row.exams?.exam_date ?? null,
+    start_time: row.exams?.start_time ?? null,
+    end_time: row.exams?.end_time ?? null,
+    room_id: row.room_id,
+    room_number: row.rooms?.room_number ?? '',
+    building: row.rooms?.building ?? '',
+    room_department: row.rooms?.department ?? null,
+    floor_id: row.rooms?.floor_id ?? null,
+    floor_number: row.rooms?.floors?.floor_number ?? null,
+    floor_label: row.rooms?.floors?.floor_label ?? null,
+    capacity: row.rooms?.capacity ?? null,
+    instructor_id: row.instructor_id,
+    instructor_name: row.instructors?.name ?? '',
+    instructor_email: row.instructors?.email ?? '',
+    department: row.instructors?.department ?? '',
+    exam_room_instructor_id: row.exam_room_instructor_id ?? null,
+    is_required: row.exam_room_instructors?.is_required ?? true,
+    other_instructors: [],
+    reporting_time: row.reporting_time,
+    arrival_time: row.arrival_time,
+    status: row.status,
+    created_at: row.created_at,
+  };
+}
+
+async function fetchDutiesWithFallback({ instructorId = null, dutyId = null } = {}) {
+  let viewQuery = supabase
+    .from('duties_detailed')
+    .select('*')
+    .order('exam_date', { ascending: true })
+    .order('reporting_time', { ascending: true });
+
+  if (instructorId) {
+    viewQuery = viewQuery.eq('instructor_id', instructorId);
+  }
+
+  if (dutyId) {
+    viewQuery = viewQuery.eq('duty_id', dutyId).maybeSingle();
+  }
+
+  const { data: viewData, error: viewError } = await viewQuery;
+  if (!viewError) {
+    return { data: dutyId ? (viewData ? [viewData] : []) : viewData ?? [] };
+  }
+
+  let baseQuery = supabase
+    .from('duties')
+    .select(
+      'id, exam_id, room_id, instructor_id, exam_room_instructor_id, reporting_time, arrival_time, status, created_at, exams(subject, exam_date, start_time, end_time), rooms(room_number, building, department, floor_id, capacity, floors(floor_number, floor_label)), instructors(name, email, department), exam_room_instructors(is_required)'
+    )
+    .order('created_at', { ascending: true });
+
+  if (instructorId) {
+    baseQuery = baseQuery.eq('instructor_id', instructorId);
+  }
+
+  if (dutyId) {
+    baseQuery = baseQuery.eq('id', dutyId).maybeSingle();
+  }
+
+  const { data: baseData, error: baseError } = await baseQuery;
+  if (baseError) {
+    throw viewError;
+  }
+
+  const normalized = dutyId ? (baseData ? [baseData] : []) : baseData ?? [];
+  return { data: normalized.map(mapDutyFromBaseRow) };
+}
+
 export function useDuties() {
   const { addToast } = useToast();
   const role = useAuthStore((state) => state.role);
@@ -111,17 +185,8 @@ export function useDuties() {
   }, []);
 
   const fetchDutyDetailById = useCallback(async (dutyId) => {
-    const { data, error: fetchError } = await supabase
-      .from('duties_detailed')
-      .select('*')
-      .eq('duty_id', dutyId)
-      .maybeSingle();
-
-    if (fetchError) {
-      throw fetchError;
-    }
-
-    return data;
+    const { data } = await fetchDutiesWithFallback({ dutyId });
+    return data?.[0] ?? null;
   }, []);
 
   const fetchInstructorDuties = useCallback(async () => {
@@ -136,16 +201,7 @@ export function useDuties() {
     setError('');
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('duties_detailed')
-        .select('*')
-        .eq('instructor_id', instructorId)
-        .order('exam_date', { ascending: true })
-        .order('reporting_time', { ascending: true });
-
-      if (fetchError) {
-        throw fetchError;
-      }
+      const { data } = await fetchDutiesWithFallback({ instructorId });
 
       const today = startOfToday();
       const upcoming = [];
@@ -181,15 +237,7 @@ export function useDuties() {
     setError('');
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('duties_detailed')
-        .select('*')
-        .order('exam_date', { ascending: true })
-        .order('reporting_time', { ascending: true });
-
-      if (fetchError) {
-        throw fetchError;
-      }
+      const { data } = await fetchDutiesWithFallback();
 
       setAllDuties(data ?? []);
       return { error: null, data: data ?? [] };
@@ -271,11 +319,11 @@ export function useDuties() {
 
               if (duty.status !== detailedDuty.status) {
                 if (detailedDuty.status === 'on-time') {
-                  addToast({ type: 'success', message: '✅ Marked as on-time' });
+                  addToast({ type: 'success', message: 'Marked as on-time' });
                 }
 
                 if (detailedDuty.status === 'late') {
-                  addToast({ type: 'warning', message: '⚠️ Marked as late' });
+                  addToast({ type: 'warning', message: 'Marked as late' });
                 }
               }
 
@@ -294,11 +342,11 @@ export function useDuties() {
 
             if (duty.status !== detailedDuty.status) {
               if (detailedDuty.status === 'on-time') {
-                addToast({ type: 'success', message: '✅ Marked as on-time' });
+                addToast({ type: 'success', message: 'Marked as on-time' });
               }
 
               if (detailedDuty.status === 'late') {
-                addToast({ type: 'warning', message: '⚠️ Marked as late' });
+                addToast({ type: 'warning', message: 'Marked as late' });
               }
             }
 
@@ -441,6 +489,47 @@ export function useDuties() {
     [fetchAllDuties]
   );
 
+  const bulkCreateDuties = useCallback(
+    async (dutiesArray = []) => {
+      setLoading(true);
+      setError('');
+
+      try {
+        const payload = (dutiesArray ?? [])
+          .map((item) => ({
+            exam_id: sanitizeUUID(item.exam_id),
+            room_id: sanitizeUUID(item.room_id),
+            instructor_id: sanitizeUUID(item.instructor_id),
+            exam_room_instructor_id: item.exam_room_instructor_id ? sanitizeUUID(item.exam_room_instructor_id) : null,
+            reporting_time: sanitizeTime(String(item.reporting_time ?? '').slice(0, 5)) || String(item.reporting_time ?? ''),
+            status: item.status ?? 'pending',
+            arrival_time: item.arrival_time ?? null,
+          }))
+          .filter((item) => item.exam_id && item.room_id && item.instructor_id && item.reporting_time);
+
+        if (!payload.length) {
+          setLoading(false);
+          return { error: 'No valid duties to create.' };
+        }
+
+        const { data: created, error: createError } = await supabase.from('duties').insert(payload).select('id');
+        if (createError) {
+          throw createError;
+        }
+
+        await fetchAllDuties();
+        return { error: null, data: created ?? [] };
+      } catch (caughtError) {
+        const message = toFriendlyError(caughtError?.message, 'Unable to create duties right now.');
+        setError(message);
+        return { error: message };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchAllDuties]
+  );
+
   const updateDuty = useCallback(
     async (id, data) => {
       setLoading(true);
@@ -532,6 +621,7 @@ export function useDuties() {
     error,
     fetchAllDuties,
     createDuty,
+    bulkCreateDuties,
     updateDuty,
     deleteDuty,
     markArrival,

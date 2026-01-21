@@ -10,9 +10,9 @@ import TablePagination from '../shared/TablePagination';
 import { useToast } from '../shared/Toast';
 
 const BADGE_STYLES = {
-  red: 'border-red-200 bg-red-100 text-red-700',
-  yellow: 'border-yellow-200 bg-yellow-100 text-yellow-700',
-  green: 'border-green-200 bg-green-100 text-green-700',
+  red: 'border-red-500/20 bg-red-500/8 text-red-400/80',
+  yellow: 'border-amber-500/20 bg-amber-500/8 text-amber-400/80',
+  green: 'border-green-500/20 bg-green-500/8 text-green-400/80',
 };
 
 function formatDutyDelta(instructorDuties, average, status) {
@@ -117,23 +117,23 @@ export default function WorkloadPanel({
 
   if (loading) {
     return (
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="h-10 animate-pulse rounded-md bg-slate-100" />
-        <div className="mt-3 h-10 animate-pulse rounded-md bg-slate-100" />
-        <div className="mt-3 h-10 animate-pulse rounded-md bg-slate-100" />
+      <section className="rounded-xl border border-white/8 bg-[#111118] p-4">
+        <div className="skeleton h-10 rounded-md" />
+        <div className="skeleton mt-3 h-10 rounded-md" />
+        <div className="skeleton mt-3 h-10 rounded-md" />
       </section>
     );
   }
 
   return (
-    <section className="app-card space-y-5 p-4">
-      {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+    <section className="app-card fade-up space-y-5 p-4">
+      {error ? <p className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p> : null}
 
       {showOverviewTable ? (
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Workload Overview</h2>
+          <h2 className="text-sm font-medium text-white/70">Workload Overview</h2>
           {sortedByDuties.length === 0 ? (
-            <p className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            <p className="mt-3 rounded-md border border-white/8 bg-[#16161F] px-4 py-3 text-sm text-white/45">
               No instructor workload data available.
             </p>
           ) : (
@@ -157,15 +157,15 @@ export default function WorkloadPanel({
                     return (
                       <tr
                         key={instructor.instructor_id}
-                        className={`transition-colors duration-500 ${
+                        className={`group transition-colors duration-500 ${
                           flashByInstructorId[instructor.instructor_id] === 'red'
-                            ? 'bg-red-50'
+                            ? 'bg-red-500/8'
                             : flashByInstructorId[instructor.instructor_id] === 'green'
-                              ? 'bg-green-50'
+                              ? 'bg-green-500/8'
                               : ''
                         }`}
                       >
-                        <td className="font-medium text-gray-800">{instructor.name}</td>
+                        <td className="font-medium text-white/80">{instructor.name}</td>
                         <td>{instructor.department ?? '--'}</td>
                         <td>{instructor.total_duties ?? 0}</td>
                         <td className={delta.className}>{delta.text}</td>
@@ -192,20 +192,20 @@ export default function WorkloadPanel({
 
       {showLateFlags ? (
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Late Arrival Flags</h2>
+          <h2 className="text-sm font-medium text-white/70">Late Arrival Flags</h2>
           {lateFlagged.length === 0 ? (
-            <p className="mt-3 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-              No repeat offenders found ✅
+            <p className="mt-3 rounded-md border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-300">
+              No repeat offenders found
             </p>
           ) : (
             <div className="mt-3 space-y-3">
               {lateFlagged.map((instructor) => (
                 <article
                   key={instructor.instructor_id}
-                  className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                  className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
                 >
-                  <p className="font-semibold text-red-800">{instructor.name}</p>
-                  <p className="mt-1 text-red-700">{instructor.department ?? '--'}</p>
+                  <p className="font-semibold text-red-200">{instructor.name}</p>
+                  <p className="mt-1 text-red-300">{instructor.department ?? '--'}</p>
                   <p className="mt-1">{instructor.late_arrivals ?? 0} late arrivals - Repeat offender</p>
                 </article>
               ))}
@@ -216,19 +216,19 @@ export default function WorkloadPanel({
 
       {showUnderutilized ? (
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Underutilized Instructors</h2>
+          <h2 className="text-sm font-medium text-white/70">Underutilized Instructors</h2>
           {underutilized.length === 0 ? (
-            <p className="mt-3 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-              All instructors are well utilized ✅
+            <p className="mt-3 rounded-md border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-300">
+              All instructors are well utilized
             </p>
           ) : (
             <div className="mt-3 space-y-3">
               {underutilized.map((instructor) => (
                 <article
                   key={instructor.instructor_id}
-                  className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800"
+                  className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-300"
                 >
-                  <p className="font-semibold text-yellow-900">{instructor.name}</p>
+                  <p className="font-semibold text-amber-200">{instructor.name}</p>
                   <p className="mt-1">{instructor.department ?? '--'}</p>
                   <p className="mt-1">Only {instructor.total_duties ?? 0} duties - Can take more</p>
                 </article>

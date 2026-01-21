@@ -47,7 +47,10 @@ export default function PendingRequests() {
       return;
     }
 
-    addToast({ type: 'success', message: `✅ ${request.name} has been approved` });
+    addToast({ type: 'success', message: `${request.name} has been approved` });
+    if (result?.warning) {
+      addToast({ type: 'warning', message: result.warning });
+    }
     setProcessingId('');
   };
 
@@ -72,23 +75,23 @@ export default function PendingRequests() {
   };
 
   return (
-    <section className="rounded-2xl border border-gray-100 bg-white shadow-card">
-      <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-        <h2 className="text-lg font-semibold text-gray-900">Pending Access Requests</h2>
-        <span className="inline-flex min-w-8 items-center justify-center rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">
+    <section className="fade-up rounded-2xl border border-white/8 bg-[#111118] shadow-card">
+      <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <h2 className="text-sm font-medium text-white/70">Pending Access Requests</h2>
+        <span className="inline-flex min-w-8 items-center justify-center rounded-full border border-red-500/30 bg-red-500/15 px-2.5 py-1 text-xs font-semibold text-red-300">
           {count}
         </span>
       </div>
 
-      {error ? <p className="mx-6 mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="mx-6 mt-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p> : null}
 
-      {loading ? <div className="p-6 text-sm text-gray-500">Loading requests...</div> : null}
+      {loading ? <div className="p-6 text-sm text-muted-foreground">Loading requests...</div> : null}
 
       {!loading && count === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
-          <CheckCircle className="h-8 w-8 text-green-600" />
-          <p className="text-base font-semibold text-gray-900">No pending requests</p>
-          <p className="text-sm text-gray-500">All instructor requests have been reviewed</p>
+          <CheckCircle className="h-8 w-8 text-green-400" />
+          <p className="text-base font-semibold text-foreground">No pending requests</p>
+          <p className="text-sm text-muted-foreground">All instructor requests have been reviewed</p>
         </div>
       ) : null}
 
@@ -98,18 +101,18 @@ export default function PendingRequests() {
             const isProcessing = processingId === request.id;
 
             return (
-              <article key={request.id} className="flex flex-col gap-3 border-b border-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <article key={request.id} className="card-interactive flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-700">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground">
                     {getInitials(request.name)}
                   </span>
 
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-gray-900">{request.name}</p>
-                    <p className="truncate text-sm text-gray-500">
+                    <p className="truncate font-medium text-foreground">{request.name}</p>
+                    <p className="truncate text-sm text-muted-foreground">
                       {request.department} • {request.email}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-muted-foreground">
                       Requested {formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}
                     </p>
                   </div>
@@ -120,7 +123,7 @@ export default function PendingRequests() {
                     type="button"
                     disabled={isProcessing}
                     onClick={() => handleApprove(request)}
-                    className="inline-flex items-center gap-1 rounded-lg bg-green-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="inline-flex items-center gap-1 rounded-lg bg-green-500/20 px-4 py-2 text-sm font-medium text-green-300 transition hover:bg-green-500/30 disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     <CheckCircle className="h-4 w-4" />
                     Approve
@@ -130,7 +133,7 @@ export default function PendingRequests() {
                     type="button"
                     disabled={isProcessing}
                     onClick={() => setRejectTarget(request)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     <XCircle className="h-4 w-4" />
                     Reject

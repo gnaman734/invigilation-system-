@@ -10,7 +10,9 @@ import './index.css';
 
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
-const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AdminDashboard = lazy(() => import('./pages/admin/CleanDashboard'));
+const ExamManagement = lazy(() => import('./pages/admin/ExamManagement'));
+const ExamDetail = lazy(() => import('./pages/admin/ExamDetail'));
 const InstructorDashboard = lazy(() => import('./pages/instructor/Dashboard'));
 const InstructorProfile = lazy(() => import('./pages/instructor/Profile'));
 
@@ -64,13 +66,13 @@ function StartupGate() {
 
   if (configError) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#F4F6F9] px-6 text-center text-[#1A1A2E]">
-        <div className="mb-4 h-12 w-12 rounded-full bg-red-100 text-red-600">
+      <div className="app-auth-bg flex min-h-screen flex-col items-center justify-center px-6 text-center text-foreground">
+        <div className="mb-4 h-12 w-12 rounded-full bg-red-500/20 text-red-300">
           <div className="flex h-full w-full items-center justify-center text-xl">!</div>
         </div>
         <h1 className="text-2xl font-semibold">Configuration required</h1>
-        <p className="mt-2 max-w-xl text-sm text-gray-600">Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env file (anon public API key).</p>
-        <ol className="mt-4 list-decimal space-y-1 text-left text-sm text-gray-700">
+        <p className="mt-2 max-w-xl text-sm text-muted-foreground">Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env file (anon public API key).</p>
+        <ol className="mt-4 list-decimal space-y-1 text-left text-sm text-muted-foreground">
           <li>Create .env.local at the project root.</li>
           <li>Set VITE_SUPABASE_URL=https://your-project.supabase.co</li>
           <li>Set VITE_SUPABASE_ANON_KEY=your-anon-public-key</li>
@@ -82,8 +84,8 @@ function StartupGate() {
 
   if (bootstrapping) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F6F9]">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-300 border-t-[#1E3A5F]" />
+      <div className="app-auth-bg flex min-h-screen items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-primary" />
       </div>
     );
   }
@@ -104,6 +106,24 @@ const router = createBrowserRouter(
           element={
             <ProtectedRoute allowedRole="admin">
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="admin/exams"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <ExamManagement />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="admin/exams/:examId"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <ExamDetail />
             </ProtectedRoute>
           }
         />
@@ -138,7 +158,16 @@ const router = createBrowserRouter(
   }
 );
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+const container = document.getElementById('root');
+
+if (!container) {
+  throw new Error('Root container not found');
+}
+
+const root = window.__invigilationAppRoot ?? ReactDOM.createRoot(container);
+window.__invigilationAppRoot = root;
+
+root.render(
   <React.StrictMode>
     <ToastProvider>
       <RouterProvider router={router} />

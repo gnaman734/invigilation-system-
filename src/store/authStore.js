@@ -26,12 +26,20 @@ const formatSupabaseAuthError = (error) => {
   const message = typeof error?.message === 'string' ? error.message : '';
   const code = error?.code ?? error?.error_code ?? null;
 
-  if (/invalid login credentials/i.test(message)) {
+  if (/invalid login credentials|invalid grant|invalid_grant/i.test(message) || code === 'invalid_grant') {
     return 'Incorrect email or password.';
+  }
+
+  if (/email provider is disabled|password sign-in is disabled|grant type password not allowed/i.test(message)) {
+    return 'Email/password sign-in is disabled in Supabase Auth settings. Enable the Email provider and try again.';
   }
 
   if (/email not confirmed/i.test(message) || code === 'email_not_confirmed') {
     return 'Email not confirmed. Check your inbox/spam for the verification email, or (for development) disable email confirmations in Supabase Auth settings.';
+  }
+
+  if (/too many requests|rate limit/i.test(message)) {
+    return 'Too many login attempts. Please wait and try again.';
   }
 
   if (/failed to fetch|networkerror|load failed/i.test(message)) {

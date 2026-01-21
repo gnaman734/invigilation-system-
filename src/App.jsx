@@ -8,11 +8,11 @@ export default function App() {
   const hideNavbar = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/';
 
   return (
-    <div className="min-h-screen bg-[#F4F6F9]">
+    <div className="min-h-screen bg-background text-foreground">
       {!hideNavbar ? <Navbar /> : null}
 
       <ErrorBoundary>
-        <Suspense fallback={<div className="mx-auto mt-8 h-40 w-full max-w-6xl animate-pulse rounded-2xl bg-gray-200" />}>
+        <Suspense fallback={<div className="mx-auto mt-8 h-40 w-full max-w-6xl animate-pulse rounded-2xl bg-muted" />}>
           <Outlet />
         </Suspense>
       </ErrorBoundary>

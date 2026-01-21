@@ -6,24 +6,24 @@ import { useToast } from './Toast';
 
 const STATUS_STYLES = {
   connected: {
-    dot: 'bg-green-500 animate-pulse',
+    dot: 'bg-green-400 animate-pulse',
     text: 'Live',
-    wrapper: 'border-green-200 bg-green-50 text-green-700',
+    wrapper: 'text-white/30',
   },
   connecting: {
-    dot: 'bg-yellow-500',
+    dot: 'bg-amber-400',
     text: 'Connecting...',
-    wrapper: 'border-yellow-200 bg-yellow-50 text-yellow-700',
+    wrapper: 'text-white/30',
   },
   disconnected: {
-    dot: 'bg-red-500',
+    dot: 'bg-red-400',
     text: 'Offline',
-    wrapper: 'border-red-200 bg-red-50 text-red-700',
+    wrapper: 'text-white/30',
   },
   error: {
-    dot: 'bg-red-600',
+    dot: 'bg-red-400',
     text: 'Offline',
-    wrapper: 'border-red-200 bg-red-50 text-red-700',
+    wrapper: 'text-white/30',
   },
 };
 
@@ -70,7 +70,7 @@ export default function ConnectionStatus() {
   return (
     <>
       {!isOnline ? (
-        <div className="fixed inset-x-0 top-0 z-[120] animate-[fade-in-up_220ms_ease-out] border-b border-red-300 bg-red-600 px-4 py-2 text-center text-sm font-medium text-white">
+        <div className="fixed inset-x-0 top-0 z-[120] animate-[fade-in-up_220ms_ease-out] border-b border-red-500/30 bg-red-500/20 px-4 py-2 text-center text-sm font-medium text-red-200">
           You are offline. Changes will sync when connection is restored.
         </div>
       ) : null}
@@ -88,15 +88,15 @@ export default function ConnectionStatus() {
           }}
           onMouseEnter={() => setShowTooltip(canReconnect)}
           onMouseLeave={() => setShowTooltip(false)}
-          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors duration-200 ${styles.wrapper} ${canReconnect ? 'cursor-pointer' : 'cursor-default'}`}
+          className={`inline-flex items-center gap-2 rounded-xl px-0 py-1.5 text-xs transition-colors duration-200 ${styles.wrapper} ${canReconnect ? 'cursor-pointer' : 'cursor-default'}`}
         >
-          <span className={`h-2.5 w-2.5 rounded-full transition-colors duration-200 ${styles.dot}`} />
+          <span className={`h-1.5 w-1.5 rounded-full transition-colors duration-200 ${styles.dot}`} />
           <span>{styles.text}</span>
-          {queuedCount > 0 ? <span className="rounded-full bg-black/10 px-1.5 py-0.5 text-[10px]">{queuedCount}</span> : null}
+          {queuedCount > 0 ? <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-white/50">{queuedCount}</span> : null}
         </button>
 
         {showTooltip ? (
-          <div className="absolute right-0 top-full z-20 mt-2 whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 shadow-sm">
+          <div className="absolute right-0 top-full z-20 mt-2 whitespace-nowrap rounded-md border border-white/10 bg-[#16161F] px-2 py-1 text-[11px] font-medium text-white/70 shadow-sm">
             Click to reconnect
           </div>
         ) : null}

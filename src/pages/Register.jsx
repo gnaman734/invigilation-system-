@@ -1,9 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Lock, Mail, ShieldCheck, User } from 'lucide-react';
+import { CheckCircle2, Eye, EyeOff, Lock, Mail, ShieldCheck, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { sanitizeEmail, sanitizeText } from '../lib/utils/sanitize';
 import { useToast } from '../components/shared/Toast';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Progress } from '../components/ui/progress';
 
 const DEPARTMENTS = ['Computer Science', 'Mathematics', 'Physics', 'Electronics', 'Mechanical', 'Other'];
 
@@ -15,6 +21,8 @@ export default function Register() {
   const [department, setDepartment] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -26,6 +34,20 @@ export default function Register() {
     password: '',
     confirmPassword: '',
   });
+
+  const passwordStrength = (() => {
+    const value = String(password ?? '');
+    let score = 0;
+    if (value.length >= 8) score += 1;
+    if (/[A-Z]/.test(value)) score += 1;
+    if (/[0-9]/.test(value)) score += 1;
+    if (/[^A-Za-z0-9]/.test(value)) score += 1;
+    return score;
+  })();
+
+  const strengthPercentage = (passwordStrength / 4) * 100;
+  const strengthLabel = passwordStrength <= 1 ? 'Weak' : passwordStrength <= 3 ? 'Medium' : 'Strong';
+  const strengthClass = passwordStrength <= 1 ? 'text-red-300' : passwordStrength <= 3 ? 'text-amber-300' : 'text-green-300';
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -73,18 +95,6 @@ export default function Register() {
         throw new Error('Supabase is not configured. Please contact admin.');
       }
 
-      const { data: existingInstructor } = await supabase
-        .from('instructors')
-        .select('id')
-        .eq('email', next.email)
-        .maybeSingle();
-
-      if (existingInstructor?.id) {
-        setErrorMessage('An account with this email already exists');
-        setSubmitting(false);
-        return;
-      }
-
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: next.email,
         password: next.password,
@@ -101,7 +111,6 @@ export default function Register() {
       if (signUpError) {
         if (/already registered|already exists|already been registered/i.test(signUpError.message ?? '')) {
           setErrorMessage('An account with this email already exists');
-          setSubmitting(false);
           return;
         }
 
@@ -112,38 +121,6 @@ export default function Register() {
       if (!authId) {
         throw new Error('Unable to create account right now. Please try again.');
       }
-
-      let hasSession = Boolean(signUpData?.session);
-
-      if (!hasSession) {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: next.email,
-          password: next.password,
-        });
-
-        if (signInError) {
-          throw new Error('Account created, but profile setup is pending. Please wait for confirmation and try again.');
-        }
-
-        hasSession = Boolean(signInData?.session);
-      }
-
-      if (!hasSession) {
-        throw new Error('Unable to establish session for profile setup. Please try again.');
-      }
-
-      const { error: insertError } = await supabase.from('instructors').insert({
-        name: next.name,
-        email: next.email,
-        department: next.department,
-        status: 'pending',
-        auth_id: authId,
-      });
-
-      if (insertError) {
-        throw insertError;
-      }
-
       await supabase.auth.signOut();
       setSubmitted(true);
     } catch (caughtError) {
@@ -151,6 +128,8 @@ export default function Register() {
 
       if (/duplicate key|already exists|already registered/i.test(message)) {
         setErrorMessage('An account with this email already exists');
+      } else if (message) {
+        setErrorMessage(message);
       } else {
         addToast({ type: 'error', message: 'Unable to submit request right now. Please try again.' });
       }
@@ -160,156 +139,166 @@ export default function Register() {
   };
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      <aside className="hidden bg-gradient-to-br from-[#1E3A5F] via-[#204b7a] to-[#2E86AB] p-10 text-white lg:flex lg:flex-col lg:justify-between">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2">
-            <ShieldCheck className="h-5 w-5" />
-            <p className="text-sm font-semibold">Intelligent Invigilation</p>
-          </div>
-          <h1 className="mt-10 max-w-md text-4xl font-semibold leading-tight tracking-tight">Request instructor access</h1>
-          <p className="mt-4 max-w-md text-sm text-blue-100">Submit your profile and get admin approval before your first login.</p>
-        </div>
-      </aside>
-
-      <section className="flex items-center justify-center bg-[#F4F6F9] px-4 py-10">
-        <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
+    <div className="app-auth-bg min-h-screen px-4 py-10">
+      <section className="mx-auto mt-[12vh] w-full max-w-md fade-up">
+        <Card className="w-full border-white/8 bg-[#111118] shadow-none">
           {!submitted ? (
             <>
-              <div className="mb-8">
-                <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#1E3A5F] text-white">
+              <CardHeader>
+                <span className="mx-auto mb-2 block h-1.5 w-1.5 rounded-full bg-amber-400" />
+                <div className="hidden">
                   <ShieldCheck className="h-5 w-5" />
                 </div>
-                <h1 className="mt-4 text-2xl font-semibold text-[#1A1A2E]">Create request</h1>
-                <p className="mt-2 text-sm text-gray-500">Your account will be activated after admin approval</p>
-              </div>
+                <CardTitle className="text-center text-2xl text-white/90">Request Access</CardTitle>
+                <CardDescription className="text-center text-white/40">Your account will be activated after admin approval</CardDescription>
+              </CardHeader>
+              <CardContent>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label htmlFor="reg-name" className="mb-1 block text-sm font-medium text-gray-700">
-                    Full Name
-                  </label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="reg-name">Full Name</Label>
                   <div className="relative">
-                    <User className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                    <input
+                    <User className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
                       id="reg-name"
                       type="text"
                       value={name}
                       onChange={(event) => setName(event.target.value)}
-                      className={`app-input pl-9 ${fieldErrors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
+                      className={`h-10 pl-9 ${fieldErrors.name ? 'border-red-500 focus-visible:ring-red-500/40' : ''}`}
                       required
                     />
                   </div>
-                  {fieldErrors.name ? <p className="mt-1 text-xs text-red-600">{fieldErrors.name}</p> : null}
+                  {fieldErrors.name ? <p className="text-xs text-red-300">{fieldErrors.name}</p> : null}
                 </div>
 
-                <div>
-                  <label htmlFor="reg-email" className="mb-1 block text-sm font-medium text-gray-700">
-                    Email
-                  </label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="reg-email">Email</Label>
                   <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                    <input
+                    <Mail className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
                       id="reg-email"
                       type="email"
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
-                      className={`app-input pl-9 ${fieldErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
+                      className={`h-10 pl-9 ${fieldErrors.email ? 'border-red-500 focus-visible:ring-red-500/40' : ''}`}
                       required
                     />
                   </div>
-                  {fieldErrors.email ? <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p> : null}
+                  {fieldErrors.email ? <p className="text-xs text-red-300">{fieldErrors.email}</p> : null}
                 </div>
 
-                <div>
-                  <label htmlFor="reg-dept" className="mb-1 block text-sm font-medium text-gray-700">
-                    Department
-                  </label>
-                  <select
-                    id="reg-dept"
+                <div className="space-y-1.5">
+                  <Label htmlFor="reg-dept">Department</Label>
+                  <Select
                     value={department}
-                    onChange={(event) => setDepartment(event.target.value)}
-                    className={`app-input ${fieldErrors.department ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
-                    required
+                    onValueChange={(value) => setDepartment(value)}
                   >
-                    <option value="">Select department</option>
-                    {DEPARTMENTS.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
-                  {fieldErrors.department ? <p className="mt-1 text-xs text-red-600">{fieldErrors.department}</p> : null}
+                    <SelectTrigger id="reg-dept" className="h-10 w-full">
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEPARTMENTS.map((item) => (
+                        <SelectItem key={item} value={item}>
+                          {item}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldErrors.department ? <p className="text-xs text-red-300">{fieldErrors.department}</p> : null}
                 </div>
 
-                <div>
-                  <label htmlFor="reg-password" className="mb-1 block text-sm font-medium text-gray-700">
-                    Password
-                  </label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="reg-password">Password</Label>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                    <input
+                    <Lock className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
                       id="reg-password"
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
-                      className={`app-input pl-9 ${fieldErrors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
+                      className={`h-10 px-9 ${fieldErrors.password ? 'border-red-500 focus-visible:ring-red-500/40' : ''}`}
                       required
                       minLength={8}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((previous) => !previous)}
+                      className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground hover:bg-muted"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
-                  {fieldErrors.password ? <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p> : null}
-                </div>
-
-                <div>
-                  <label htmlFor="reg-confirm-password" className="mb-1 block text-sm font-medium text-gray-700">
-                    Confirm Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                    <input
-                      id="reg-confirm-password"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(event) => setConfirmPassword(event.target.value)}
-                      className={`app-input pl-9 ${fieldErrors.confirmPassword ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
-                      required
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Strength</span>
+                      <span className={strengthClass}>{strengthLabel}</span>
+                    </div>
+                    <Progress
+                      value={strengthPercentage}
+                      className="h-2 [&_[data-slot=progress-indicator]]:bg-primary"
                     />
                   </div>
-                  {fieldErrors.confirmPassword ? <p className="mt-1 text-xs text-red-600">{fieldErrors.confirmPassword}</p> : null}
+                  {fieldErrors.password ? <p className="text-xs text-red-300">{fieldErrors.password}</p> : null}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="reg-confirm-password">Confirm Password</Label>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="reg-confirm-password"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      className={`h-10 px-9 ${fieldErrors.confirmPassword ? 'border-red-500 focus-visible:ring-red-500/40' : ''}`}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((previous) => !previous)}
+                      className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground hover:bg-muted"
+                      aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {fieldErrors.confirmPassword ? <p className="text-xs text-red-300">{fieldErrors.confirmPassword}</p> : null}
                 </div>
 
                 {errorMessage ? (
-                  <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{errorMessage}</p>
+                  <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{errorMessage}</p>
                 ) : null}
 
-                <button type="submit" disabled={submitting} className="app-btn-primary flex w-full items-center justify-center gap-2">
+                <Button type="submit" disabled={submitting} className="h-10 w-full text-sm font-semibold">
                   {submitting ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/60 border-t-white" /> : null}
                   {submitting ? 'Submitting...' : 'Request Access'}
-                </button>
+                </Button>
 
-                <button
+                <Button
                   type="button"
-                  className="w-full text-sm text-[#2E86AB] transition hover:underline"
+                  variant="outline"
+                  className="h-10 w-full border-primary/30 text-primary hover:bg-primary/10"
                   onClick={() => navigate('/login')}
                 >
                   Back to Login
-                </button>
+                </Button>
               </form>
+              </CardContent>
             </>
           ) : (
-            <div className="py-10 text-center">
-              <CheckCircle2 className="mx-auto h-14 w-14 text-green-600" />
-              <h2 className="mt-4 text-2xl font-semibold text-[#1A1A2E]">Request Submitted!</h2>
-              <p className="mt-2 text-sm text-gray-600">
+            <CardContent className="py-10 text-center">
+              <CheckCircle2 className="mx-auto h-14 w-14 text-green-400" />
+              <h2 className="mt-4 text-3xl">Request Submitted!</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
                 Your account is pending admin approval. You will be able to login once approved.
               </p>
-              <button type="button" className="app-btn-primary mt-6" onClick={() => navigate('/login')}>
+              <Button type="button" className="mt-6" onClick={() => navigate('/login')}>
                 Back to Login
-              </button>
-            </div>
+              </Button>
+            </CardContent>
           )}
-        </div>
+        </Card>
       </section>
     </div>
   );

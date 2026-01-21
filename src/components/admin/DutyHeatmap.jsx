@@ -6,11 +6,11 @@ import { format, startOfWeek, subWeeks } from 'date-fns';
 const WEEKS = 12;
 
 function getCellClass(value) {
-  if (value <= 0) return 'bg-gray-100';
-  if (value === 1) return 'bg-blue-100';
-  if (value === 2) return 'bg-blue-300';
-  if (value === 3) return 'bg-blue-500';
-  return 'bg-blue-700';
+  if (value <= 0) return 'bg-white/5';
+  if (value === 1) return 'bg-amber-500/20';
+  if (value === 2) return 'bg-amber-500/35';
+  if (value === 3) return 'bg-amber-500/55';
+  return 'bg-amber-400/80';
 }
 
 function EmptyChartState({ message }) {
@@ -61,13 +61,13 @@ function DutyHeatmap({ instructors = [], duties = [] }) {
   }, [instructors, duties, weeks]);
 
   return (
-    <section className="app-card">
+    <section className="app-card card-interactive fade-up p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-[#1A1A2E]">Monthly Duty Heatmap</h3>
-          <p className="text-sm text-gray-500">Duty load per instructor per week</p>
+          <h3 className="text-sm font-medium text-white/70">Monthly Duty Heatmap</h3>
+          <p className="mt-0.5 text-xs text-white/30">Duty load per instructor per week</p>
         </div>
-        <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">Last 12 Weeks</span>
+        <span className="rounded-lg border border-white/8 bg-white/5 px-2 py-1 text-xs text-white/40">Last 12 Weeks</span>
       </div>
 
       {matrix.length === 0 ? (
@@ -80,7 +80,7 @@ function DutyHeatmap({ instructors = [], duties = [] }) {
             <div className="mb-2 grid grid-cols-[180px_repeat(12,minmax(0,1fr))] items-center gap-2">
               <p className="app-label">Instructor</p>
               {weeks.map((week) => (
-                <p key={format(week, 'yyyy-MM-dd')} className="text-center text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                <p key={format(week, 'yyyy-MM-dd')} className="text-center text-[10px] font-semibold uppercase tracking-wide text-white/30">
                   {format(week, 'dd MMM')}
                 </p>
               ))}
@@ -89,7 +89,7 @@ function DutyHeatmap({ instructors = [], duties = [] }) {
             <div className="space-y-2">
               {matrix.map((row) => (
                 <div key={row.id} className="grid grid-cols-[180px_repeat(12,minmax(0,1fr))] items-center gap-2">
-                  <p className="truncate pr-2 text-sm font-medium text-gray-700">{row.name}</p>
+                  <p className="truncate pr-2 text-sm font-medium text-white/65">{row.name}</p>
                   {row.cells.map((cell) => (
                     <div
                       key={`${row.id}-${cell.weekKey}`}
@@ -104,13 +104,13 @@ function DutyHeatmap({ instructors = [], duties = [] }) {
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+      <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-white/40">
         <span>Less</span>
-        <span className="h-3 w-3 rounded-sm bg-gray-100" />
-        <span className="h-3 w-3 rounded-sm bg-blue-100" />
-        <span className="h-3 w-3 rounded-sm bg-blue-300" />
-        <span className="h-3 w-3 rounded-sm bg-blue-500" />
-        <span className="h-3 w-3 rounded-sm bg-blue-700" />
+        <span className="h-3 w-3 rounded-sm bg-white/5" />
+        <span className="h-3 w-3 rounded-sm bg-amber-500/20" />
+        <span className="h-3 w-3 rounded-sm bg-amber-500/35" />
+        <span className="h-3 w-3 rounded-sm bg-amber-500/55" />
+        <span className="h-3 w-3 rounded-sm bg-amber-400/80" />
         <span>More</span>
       </div>
     </section>

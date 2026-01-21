@@ -112,7 +112,7 @@ export function useInstructors() {
     try {
       const { data, error: fetchError } = await supabase
         .from('instructors')
-        .select('id, name, email, department, total_duties, late_arrivals, on_time_arrivals, status, auth_id, created_at')
+        .select('id, name, email, department, total_duties, late_arrivals, on_time_arrivals, status, is_active, auth_id, created_at')
         .eq('status', 'approved')
         .order('name', { ascending: true });
 
@@ -134,6 +134,7 @@ export function useInstructors() {
           on_time_arrivals: onTime,
           punctuality_percentage: total > 0 ? Math.round((onTime / total) * 10000) / 100 : 0,
           status: item.status,
+          is_active: item.is_active ?? true,
           auth_id: item.auth_id ?? null,
           created_at: item.created_at,
         };
@@ -254,37 +255,46 @@ export function useInstructors() {
       setLoading(true);
       setError('');
 
-      if (!sanitizeUUID(instructorIdToApprove) || !sanitizeUUID(authId)) {
+      if (!sanitizeUUID(instructorIdToApprove)) {
         setLoading(false);
         return { error: 'Invalid instructor request selected.' };
       }
 
       try {
+        let warning = null;
+
         const { error: updateError } = await supabase
           .from('instructors')
-          .update({ status: 'approved', auth_id: authId })
+          .update({
+            status: 'approved',
+            auth_id: sanitizeUUID(authId) ? authId : null,
+          })
           .eq('id', instructorIdToApprove);
 
         if (updateError) {
           throw updateError;
         }
 
-        const { error: metadataError } = await supabase.rpc('admin_update_auth_user_metadata', {
-          target_auth_id: authId,
-          metadata_patch: {
-            role: 'instructor',
-            instructor_id: instructorIdToApprove,
-            status: 'approved',
-          },
-        });
+        if (sanitizeUUID(authId)) {
+          const { error: metadataError } = await supabase.rpc('admin_update_auth_user_metadata', {
+            target_auth_id: authId,
+            metadata_patch: {
+              role: 'instructor',
+              instructor_id: instructorIdToApprove,
+              status: 'approved',
+            },
+          });
 
-        if (metadataError) {
-          throw metadataError;
+          if (metadataError) {
+            warning = 'Approved, but auth metadata update failed. Run SETUP_ONCE.sql and verify admin helper functions.';
+          }
+        } else {
+          warning = 'Approved, but auth user link is missing for this request.';
         }
 
         setPendingRequests((previous) => previous.filter((request) => request.id !== instructorIdToApprove));
         await fetchAllInstructors({ force: true });
-        return { error: null };
+        return { error: null, warning };
       } catch (caughtError) {
         const message = toFriendlyError(caughtError?.message, 'Unable to approve instructor right now.');
         setError(message);
@@ -321,7 +331,8 @@ export function useInstructors() {
         });
 
         if (deleteAuthError) {
-          throw deleteAuthError;
+          // Do not block rejection if auth helper function is unavailable.
+          // Instructor access remains rejected at application level.
         }
       }
 
@@ -426,6 +437,39 @@ export function useInstructors() {
     [fetchAllInstructors]
   );
 
+  const deactivateInstructor = useCallback(
+    async (id) => {
+      setLoading(true);
+      setError('');
+
+      if (!sanitizeUUID(id)) {
+        setLoading(false);
+        return { error: 'Invalid instructor selected.' };
+      }
+
+      try {
+        const { error: updateError } = await supabase
+          .from('instructors')
+          .update({ is_active: false })
+          .eq('id', id);
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        await fetchAllInstructors({ force: true });
+        return { error: null };
+      } catch (caughtError) {
+        const message = toFriendlyError(caughtError?.message, 'Unable to deactivate instructor right now.');
+        setError(message);
+        return { error: message };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchAllInstructors]
+  );
+
   useEffect(() => {
     let active = true;
 
@@ -482,5 +526,6 @@ export function useInstructors() {
     rejectInstructor,
     updateInstructor,
     deleteInstructor,
+    deactivateInstructor,
   };
 }

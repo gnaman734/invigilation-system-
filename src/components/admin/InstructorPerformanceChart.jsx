@@ -4,7 +4,7 @@ import { BarChart2 } from 'lucide-react';
 import { Legend, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer } from 'recharts';
 import { calculatePunctualityPercentage } from '../../lib/utils/punctuality';
 
-const RADAR_COLORS = ['#1E3A5F', '#2E86AB', '#27AE60', '#F5A623', '#E74C3C'];
+const RADAR_COLORS = ['rgba(245,158,11,0.7)', 'rgba(255,255,255,0.35)', 'rgba(99,102,241,0.55)', 'rgba(16,185,129,0.55)', 'rgba(239,68,68,0.55)'];
 
 function EmptyChartState({ message }) {
   return (
@@ -103,11 +103,11 @@ function InstructorPerformanceChart({ instructors = [] }) {
   }, [topInstructors]);
 
   return (
-    <section className="app-card">
+    <section className="app-card card-interactive fade-up p-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-[#1A1A2E]">Instructor Performance Overview</h3>
-          <p className="text-sm text-gray-500">Multi-metric comparison</p>
+          <h3 className="text-sm font-medium text-white/70">Instructor Performance Overview</h3>
+          <p className="mt-0.5 text-xs text-white/30">Multi-metric comparison</p>
         </div>
 
         <div className="w-full sm:w-auto">
@@ -138,9 +138,9 @@ function InstructorPerformanceChart({ instructors = [] }) {
         <div className="mt-4 h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart data={radarData}>
-              <PolarGrid stroke="#E5E7EB" />
-              <PolarAngleAxis dataKey="metric" tick={{ fill: '#6B7280', fontSize: 12 }} />
-              <PolarRadiusAxis domain={[0, 100]} tick={{ fill: '#9CA3AF', fontSize: 10 }} />
+              <PolarGrid stroke="rgba(255,255,255,0.08)" />
+              <PolarAngleAxis dataKey="metric" tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} />
+              <PolarRadiusAxis domain={[0, 100]} tick={{ fill: 'rgba(255,255,255,0.22)', fontSize: 10 }} />
               {topInstructors.map((instructor, index) => (
                 <Radar
                   key={instructor.key}
