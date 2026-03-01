@@ -1,20 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarX, Copy, Eye, GraduationCap, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, CalendarX, Check, ClipboardList, Copy, DoorOpen, Eye, GraduationCap, Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import ExamWizard from '../../components/admin/ExamWizard';
 import { useExamManagement } from '../../lib/hooks/useExamManagement';
 import { useToast } from '../../components/shared/Toast';
+import ExamWizard from '../../components/admin/ExamWizard';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
+
+const STATUS_OPTIONS = ['upcoming', 'ongoing', 'completed'];
+
+function statusBadgeClasses(status) {
+  if (status === 'ongoing') return 'border-blue-500/25 bg-blue-500/10 text-blue-300';
+  if (status === 'completed') return 'border-green-500/25 bg-green-500/10 text-green-300';
+  return 'border-amber-500/25 bg-amber-500/10 text-amber-300';
+}
 
 export default function ExamManagement({ embedded = false, onCreateExamClick }) {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const examMgmt = useExamManagement();
-  const [wizardOpen, setWizardOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [monthFilter, setMonthFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [highlightNewest, setHighlightNewest] = useState(false);
 
   useEffect(() => {
     examMgmt.fetchAllExams();
@@ -30,7 +40,7 @@ export default function ExamManagement({ embedded = false, onCreateExamClick }) 
       }
       if (search.trim() && !String(exam.subject ?? '').toLowerCase().includes(search.toLowerCase())) return false;
       return true;
-    });
+    }).sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
   }, [examMgmt.exams, statusFilter, departmentFilter, monthFilter, search]);
 
   const removeExam = async (id) => {
@@ -54,6 +64,16 @@ export default function ExamManagement({ embedded = false, onCreateExamClick }) 
     <div className={embedded ? 'space-y-4' : 'mx-auto w-full max-w-7xl px-4 py-6 sm:px-6'}>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
+          {!embedded ? (
+            <button
+              type="button"
+              onClick={() => navigate('/admin/dashboard?tab=overview')}
+              className="mb-2 inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/60 transition-colors hover:border-white/20 hover:text-white/85"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back
+            </button>
+          ) : null}
           <h1 className="text-2xl text-white/90">Exams</h1>
           <p className="mt-1 text-sm text-white/35">{exams.length} total exams</p>
         </div>
@@ -104,15 +124,49 @@ export default function ExamManagement({ embedded = false, onCreateExamClick }) 
 
       {!examMgmt.loading && exams.length > 0 ? (
         <div className="grid gap-3 md:grid-cols-2">
-          {exams.map((exam) => {
+          {exams.map((exam, index) => {
             const roomCount = exam.exam_rooms?.length ?? 0;
             const instructorCount = (exam.exam_rooms ?? []).reduce((sum, room) => sum + (room.exam_room_instructors?.length ?? 0), 0);
             const capacity = (exam.exam_rooms ?? []).reduce((sum, room) => sum + Number(room.rooms?.capacity ?? 0), 0);
+            const totalDuties = exam.duties?.length ?? 0;
+            const completedDuties = (exam.duties ?? []).filter((duty) => duty.status === 'on-time' || duty.status === 'late').length;
+            const completionRate = totalDuties > 0 ? Math.round((completedDuties / totalDuties) * 100) : 0;
             return (
-              <article key={exam.id} className="group rounded-2xl border border-white/8 bg-[#111118] p-6 transition-all duration-200 hover:-translate-y-[1px] hover:border-white/14">
+              <article
+                key={exam.id}
+                className={`group cursor-pointer rounded-2xl border border-white/8 bg-[#111118] p-6 transition-all duration-200 hover:-translate-y-[1px] hover:border-white/14 ${highlightNewest && index === 0 ? 'fade-up' : ''}`}
+                onClick={() => navigate(`/admin/exams/${exam.id}`)}
+              >
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="text-base text-white/90">{exam.subject}</h3>
-                  <span className="rounded-full border border-white/10 px-2 py-0.5 text-[11px] text-white/50">{exam.status || 'upcoming'}</span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className={`rounded-full border px-2 py-0.5 text-[11px] capitalize ${statusBadgeClasses(exam.status || 'upcoming')}`}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        {exam.status || 'upcoming'}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-36 border-white/10 bg-[#111118] text-white/75">
+                      {STATUS_OPTIONS.map((status) => (
+                        <DropdownMenuItem
+                          key={status}
+                          className="cursor-pointer capitalize focus:bg-white/10"
+                          onClick={async (event) => {
+                            event.stopPropagation();
+                            const result = await examMgmt.updateExam(exam.id, { status });
+                            if (result.error) addToast({ type: 'error', message: result.error });
+                            else addToast({ type: 'success', message: 'Exam status updated.' });
+                          }}
+                        >
+                          {exam.status === status ? <Check className="mr-1 h-3.5 w-3.5 text-amber-400" /> : <span className="mr-1 h-3.5 w-3.5" />}
+                          {status}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <p className="mt-2 text-xs text-white/40">{exam.exam_date ? `${format(new Date(`${exam.exam_date}T00:00:00`), 'dd MMM yyyy, EEEE')}` : '--'}</p>
                 <p className="mt-1 text-xs text-white/40">{exam.department || '--'} • {exam.start_time?.slice(0, 5)} - {exam.end_time?.slice(0, 5)}</p>
@@ -132,11 +186,17 @@ export default function ExamManagement({ embedded = false, onCreateExamClick }) 
                   </div>
                 </div>
 
+                <div className="mt-3 flex flex-wrap items-center gap-4 border-t border-white/5 pt-3 text-xs text-white/45">
+                  <span className="inline-flex items-center gap-1.5"><DoorOpen className="h-3.5 w-3.5" />{roomCount} Rooms</span>
+                  <span className="inline-flex items-center gap-1.5"><ClipboardList className="h-3.5 w-3.5" />{totalDuties} Duties</span>
+                  <span className={`rounded-full px-2 py-0.5 ${completionRate === 100 ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'}`}>{completionRate}% complete</span>
+                </div>
+
                 <div className="mt-4 flex items-center gap-2 opacity-100 transition-all duration-200 md:opacity-0 md:group-hover:opacity-100">
-                  <button type="button" className="app-btn-ghost px-3 py-1.5 text-xs" onClick={() => navigate(`/admin/exams/${exam.id}`)}><Eye className="h-3.5 w-3.5" />View</button>
-                  <button type="button" className="app-btn-ghost px-3 py-1.5 text-xs" onClick={openWizard}><Pencil className="h-3.5 w-3.5" />Edit</button>
-                  <button type="button" className="app-btn-ghost px-3 py-1.5 text-xs" onClick={() => addToast({ type: 'info', message: 'Duplicate opens wizard. Pick a new date.' })}><Copy className="h-3.5 w-3.5" />Duplicate</button>
-                  <button type="button" className="app-btn-danger px-3 py-1.5 text-xs" onClick={() => removeExam(exam.id)}><Trash2 className="h-3.5 w-3.5" />Delete</button>
+                  <button type="button" className="app-btn-ghost px-3 py-1.5 text-xs" onClick={(event) => { event.stopPropagation(); navigate(`/admin/exams/${exam.id}`); }}><Eye className="h-3.5 w-3.5" />View</button>
+                  <button type="button" className="app-btn-ghost px-3 py-1.5 text-xs" onClick={(event) => { event.stopPropagation(); navigate(`/admin/exams/${exam.id}`); }}><Pencil className="h-3.5 w-3.5" />Edit</button>
+                  <button type="button" className="app-btn-ghost px-3 py-1.5 text-xs" onClick={(event) => { event.stopPropagation(); addToast({ type: 'info', message: 'Duplicate opens wizard. Pick a new date.' }); openWizard(); }}><Copy className="h-3.5 w-3.5" />Duplicate</button>
+                  <button type="button" className="app-btn-danger px-3 py-1.5 text-xs" onClick={(event) => { event.stopPropagation(); removeExam(exam.id); }}><Trash2 className="h-3.5 w-3.5" />Delete</button>
                 </div>
               </article>
             );
@@ -144,7 +204,16 @@ export default function ExamManagement({ embedded = false, onCreateExamClick }) 
         </div>
       ) : null}
 
-      {!embedded ? <ExamWizard open={wizardOpen} onOpenChange={setWizardOpen} onCreated={() => examMgmt.fetchAllExams()} /> : null}
+      <ExamWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        onCreated={() => {
+          setWizardOpen(false);
+          examMgmt.fetchAllExams();
+          setHighlightNewest(true);
+          window.setTimeout(() => setHighlightNewest(false), 700);
+        }}
+      />
     </div>
   );
 }

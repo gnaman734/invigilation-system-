@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, ShieldCheck, User2 } from 'lucide-react';
+import { ArrowLeft, LogOut, ShieldCheck, User2 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import NotificationPanel from '../instructor/NotificationPanel';
 import ConnectionStatus from './ConnectionStatus';
+import ErrorBoundary from './ErrorBoundary';
 import { sanitizeText } from '../../lib/utils/sanitize';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Badge } from '../ui/badge';
@@ -41,6 +42,7 @@ export default function Navbar() {
   const role = useAuthStore((state) => state.role);
   const instructorId = useAuthStore((state) => state.instructorId);
   const logout = useAuthStore((state) => state.logout);
+  const destroy = useAuthStore((state) => state.destroy);
   const name = sanitizeText(user?.user_metadata?.name ?? user?.email ?? 'User');
   const initials = getInitials(name);
   const pageName = location.pathname.includes('/admin')
@@ -51,15 +53,33 @@ export default function Navbar() {
         ? 'Instructor Dashboard'
         : 'Overview';
 
+  const handleGoHome = () => {
+    if (role === 'admin' || location.pathname.startsWith('/admin')) {
+      navigate('/admin/dashboard?tab=overview');
+      return;
+    }
+
+    if (role === 'instructor' || location.pathname.startsWith('/instructor')) {
+      navigate('/instructor/dashboard');
+      return;
+    }
+
+    navigate('/login');
+  };
+
+  const handleBack = () => {
+    navigate(-1);
+  };
+
   const handleLogout = async () => {
     setErrorMessage('');
     const result = await logout();
 
     if (result?.error) {
       setErrorMessage(result.error);
-      return;
     }
 
+    destroy();
     navigate('/login', { replace: true });
   };
 
@@ -81,15 +101,46 @@ export default function Navbar() {
     <header className="sticky top-0 z-40 h-14 border-b border-white/6 bg-[#0A0A0F] px-6">
       <div className="mx-auto flex h-full w-full max-w-7xl items-center justify-between">
         <div className="flex items-center">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="inline-flex h-8 items-center gap-1 rounded-lg border border-white/10 px-2 text-xs text-white/60 transition-colors hover:border-white/20 hover:text-white/85"
+            aria-label="Go back"
+            title="Back"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Back</span>
+          </button>
+          <span className="mx-3 h-4 w-px bg-white/10" />
           <ShieldCheck className="h-5 w-5 text-amber-400" />
-          <span className="ml-2 hidden text-sm font-semibold text-white/80 sm:inline">InvigilationMS</span>
-          <span className="ml-2 text-sm font-semibold text-white/80 sm:hidden">IMS</span>
+          <button
+            type="button"
+            onClick={handleGoHome}
+            className="ml-2 hidden text-sm font-semibold text-white/80 transition-colors hover:text-white sm:inline"
+            aria-label="Go to overview"
+            title="Go to overview"
+          >
+            InvigilationMS
+          </button>
+          <button
+            type="button"
+            onClick={handleGoHome}
+            className="ml-2 text-sm font-semibold text-white/80 transition-colors hover:text-white sm:hidden"
+            aria-label="Go to overview"
+            title="Go to overview"
+          >
+            IMS
+          </button>
           <span className="mx-4 h-4 w-px bg-white/10" />
           <span className="hidden text-sm text-white/35 sm:inline">{pageName}</span>
         </div>
 
         <div className="flex items-center gap-2">
-          {role === 'instructor' ? <NotificationPanel instructorId={instructorId} onJumpToDuty={handleJumpToDuty} /> : null}
+          {role === 'instructor' ? (
+            <ErrorBoundary>
+              <NotificationPanel instructorId={instructorId} onJumpToDuty={handleJumpToDuty} />
+            </ErrorBoundary>
+          ) : null}
           <ConnectionStatus />
           <span className="h-4 w-px bg-white/10" />
 
@@ -112,7 +163,7 @@ export default function Navbar() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-transparent" />
-              <DropdownMenuItem onClick={handleLogout} className="rounded-lg px-2 py-1.5 text-sm text-red-400 transition-colors hover:bg-red-500/8 hover:text-red-300 focus:bg-red-500/8 focus:text-red-300">
+              <DropdownMenuItem onSelect={() => { void handleLogout(); }} className="rounded-lg px-2 py-1.5 text-sm text-red-400 transition-colors hover:bg-red-500/8 hover:text-red-300 focus:bg-red-500/8 focus:text-red-300">
                 <LogOut className="h-4 w-4" />
                 Logout
               </DropdownMenuItem>

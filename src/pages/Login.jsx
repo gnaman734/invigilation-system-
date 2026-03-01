@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { clearLoginAttemptWindow, getLoginRateLimitState, registerFailedLoginAttempt } from '../lib/utils/rateLimit';
 import { sanitizeEmail } from '../lib/utils/sanitize';
@@ -14,7 +14,6 @@ export default function Login() {
   const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
   const [shake, setShake] = useState(false);
   const [lockState, setLockState] = useState(getLoginRateLimitState());
-  const [hasSubmittedLogin, setHasSubmittedLogin] = useState(false);
   const supabaseHost = (() => {
     const rawUrl = import.meta.env.VITE_SUPABASE_URL;
     if (!rawUrl) {
@@ -34,7 +33,7 @@ export default function Login() {
   const loading = useAuthStore((state) => state.loading);
   const login = useAuthStore((state) => state.login);
   useEffect(() => {
-    if (!hasSubmittedLogin || !user || !role) {
+    if (!user || !role) {
       return;
     }
 
@@ -46,7 +45,7 @@ export default function Login() {
     if (role === 'instructor') {
       navigate('/instructor/dashboard', { replace: true });
     }
-  }, [hasSubmittedLogin, user, role, navigate]);
+  }, [user, role, navigate]);
 
 
   useEffect(() => {
@@ -105,12 +104,21 @@ export default function Login() {
       return;
     }
 
-    setHasSubmittedLogin(true);
     clearLoginAttemptWindow();
   };
 
   return (
     <div className="app-auth-bg min-h-screen px-4 py-10">
+      <div className="mx-auto w-full max-w-sm">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/60 transition-colors hover:border-white/20 hover:text-white/85"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back
+        </button>
+      </div>
       <div
         className="pointer-events-none fixed left-1/2 top-[-200px] h-[400px] w-[600px] -translate-x-1/2"
         style={{

@@ -1,4 +1,5 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   BarChart2,
   ClipboardList,
@@ -39,14 +40,32 @@ const navItems = [
 ];
 
 export default function CleanDashboard() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [active, setActive] = useState('overview');
-  const [wizardOpen, setWizardOpen] = useState(false);
+  const [examWizardOpen, setExamWizardOpen] = useState(false);
   const { instructors, pendingRequests } = useInstructors();
   const { allDuties } = useDuties();
 
   const fallback = <div className="skeleton h-40" />;
 
   const overdueCount = useMemo(() => (allDuties ?? []).filter((item) => item.status === 'pending').length, [allDuties]);
+
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+    if (!requestedTab) {
+      return;
+    }
+
+    const tabExists = navItems.some((item) => item.id === requestedTab);
+    if (tabExists) {
+      setActive(requestedTab);
+    }
+  }, [searchParams]);
+
+  const setActiveTab = (tabId) => {
+    setActive(tabId);
+    setSearchParams({ tab: tabId }, { replace: true });
+  };
 
   return (
     <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[230px,1fr]">
@@ -66,7 +85,7 @@ export default function CleanDashboard() {
 
                 <button
                   type="button"
-                  onClick={() => setActive(item.id)}
+                  onClick={() => setActiveTab(item.id)}
                   className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm ${isActive ? 'bg-white/8 text-white/85' : 'text-white/45 hover:bg-white/4 hover:text-white/70'}`}
                 >
                   <span className="inline-flex items-center gap-2">
@@ -92,15 +111,15 @@ export default function CleanDashboard() {
                 <h1 className="text-2xl text-white/85">Overview</h1>
                 <p className="text-xs text-white/35">Quick actions</p>
               </div>
-              <button type="button" className="app-btn-primary" onClick={() => setWizardOpen(true)}>
+              <button type="button" className="app-btn-primary" onClick={() => setExamWizardOpen(true)}>
                 Create Exam + Duties
               </button>
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <button type="button" className="app-btn-ghost" onClick={() => setActive('rooms')}>Manage Rooms</button>
-              <button type="button" className="app-btn-ghost" onClick={() => setActive('floors')}>Manage Floors</button>
-              <button type="button" className="app-btn-ghost" onClick={() => setActive('requests')}>View Requests</button>
+              <button type="button" className="app-btn-ghost" onClick={() => setActiveTab('rooms')}>Manage Rooms</button>
+              <button type="button" className="app-btn-ghost" onClick={() => setActiveTab('floors')}>Manage Floors</button>
+              <button type="button" className="app-btn-ghost" onClick={() => setActiveTab('requests')}>View Requests</button>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -132,7 +151,7 @@ export default function CleanDashboard() {
 
         {active === 'exams' ? (
           <Suspense fallback={fallback}>
-            <ExamManagement embedded onCreateExamClick={() => setWizardOpen(true)} />
+            <ExamManagement embedded onCreateExamClick={() => setExamWizardOpen(true)} />
           </Suspense>
         ) : null}
 
@@ -179,7 +198,15 @@ export default function CleanDashboard() {
         ) : null}
       </main>
 
-      <ExamWizard open={wizardOpen} onOpenChange={setWizardOpen} />
+      <ExamWizard
+        open={examWizardOpen}
+        onOpenChange={setExamWizardOpen}
+        onCreated={() => {
+          setExamWizardOpen(false);
+          setActiveTab('exams');
+        }}
+      />
+
     </div>
   );
 }

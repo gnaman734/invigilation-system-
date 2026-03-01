@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Eye, EyeOff, Lock, Mail, ShieldCheck, User } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Eye, EyeOff, Lock, Mail, ShieldCheck, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { sanitizeEmail, sanitizeText } from '../lib/utils/sanitize';
 import { useToast } from '../components/shared/Toast';
@@ -140,6 +140,16 @@ export default function Register() {
 
   return (
     <div className="app-auth-bg min-h-screen px-4 py-10">
+      <div className="mx-auto w-full max-w-md">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/60 transition-colors hover:border-white/20 hover:text-white/85"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back
+        </button>
+      </div>
       <section className="mx-auto mt-[12vh] w-full max-w-md fade-up">
         <Card className="w-full border-white/8 bg-[#111118] shadow-none">
           {!submitted ? (
