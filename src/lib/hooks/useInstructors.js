@@ -286,7 +286,7 @@ export function useInstructors() {
           });
 
           if (metadataError) {
-            warning = 'Approved, but auth metadata update failed. Run SETUP_ONCE.sql and verify admin helper functions.';
+            warning = 'Approved, but auth metadata update failed. Run 002_security_rls_setup.sql and verify admin helper functions.';
           }
         } else {
           warning = 'Approved, but auth user link is missing for this request.';

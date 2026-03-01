@@ -4,7 +4,6 @@
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres-3ECF8E?logo=supabase&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 ![PyPI](https://img.shields.io/pypi/v/sniff?label=Sniff%20(PyPI))
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black?logo=vercel)](https://invigilation-system.vercel.app)
 
 ## Screenshots
 
@@ -64,16 +63,11 @@ Create `.env.development` and `.env.production`:
 - `VITE_SUPABASE_ANON_KEY`
 
 ### Database Setup Order
-1. Run [supabase/schema.sql](supabase/schema.sql)
-2. Run [supabase/SETUP_ONCE.sql](supabase/SETUP_ONCE.sql)
-3. Run [supabase/seed.sql](supabase/seed.sql) (optional)
-
-## Demo Credentials
-
-- Admin: `admin@univ.edu` / `password` (example)
-- Instructor: `instructor@univ.edu` / `password` (example)
-
-> Replace with your actual seeded credentials.
+1. Run [supabase/001_core_schema.sql](supabase/001_core_schema.sql)
+2. Run [supabase/002_security_rls_setup.sql](supabase/002_security_rls_setup.sql)
+3. Use only real operational records.
+   - [supabase/999_data_policy.sql](supabase/999_data_policy.sql) is intentionally data-free.
+   - Create users and records through Supabase Auth and app workflows.
 
 ## Project Structure
 

@@ -14,8 +14,8 @@
 - [ ] Production Supabase URL ready
 
 ## Database
-- [ ] schema.sql runs without errors
-- [ ] SETUP_ONCE.sql runs without errors
+- [ ] 001_core_schema.sql runs without errors
+- [ ] 002_security_rls_setup.sql runs without errors
 - [ ] RLS policies tested for both roles
 - [ ] Real-time enabled in Supabase dashboard
 - [ ] Email confirm disabled for easy testing

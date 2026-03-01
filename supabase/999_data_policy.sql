@@ -1,0 +1,5 @@
+-- This project no longer ships demo/sample records.
+-- Keep this file intentionally data-free for production-like usage.
+--
+-- If you need initial data, create real entities through the application UI
+-- (or via controlled internal migration scripts), not synthetic seed inserts.
