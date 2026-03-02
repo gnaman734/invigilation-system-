@@ -1,8 +1,10 @@
 function toMax(value) {
   const parsed = Number.parseInt(String(value ?? 1), 10);
-  if (!Number.isFinite(parsed) || parsed < 1) return 1;
-  return parsed;
+  if (!Number.isFinite(parsed)) return 1;
+  return Math.min(4, Math.max(1, parsed));
 }
+
+const MIN_PER_ROOM = 1;
 
 export function distributeInstructors(instructors = [], rooms = []) {
   const sortedInstructors = [...(instructors ?? [])].sort((a, b) => {
@@ -26,8 +28,19 @@ export function distributeInstructors(instructors = [], rooms = []) {
   }, {});
 
   const unassigned = [];
+  const queue = [...sortedInstructors];
 
-  sortedInstructors.forEach((instructor) => {
+  // Pass 1: satisfy minimum coverage (2) for every room first.
+  for (const room of normalizedRooms) {
+    const roomState = assigned[room.id];
+    while ((roomState?.instructors?.length ?? 0) < MIN_PER_ROOM && queue.length > 0) {
+      roomState.instructors.push(queue.shift());
+    }
+  }
+
+  // Pass 2: fill remaining slots up to each room max (3).
+  while (queue.length > 0) {
+    const instructor = queue.shift();
     let placed = false;
 
     for (const room of normalizedRooms) {
@@ -42,7 +55,7 @@ export function distributeInstructors(instructors = [], rooms = []) {
     if (!placed) {
       unassigned.push(instructor);
     }
-  });
+  }
 
   const totalAssigned = Object.values(assigned).reduce((sum, roomState) => sum + (roomState?.instructors?.length ?? 0), 0);
 

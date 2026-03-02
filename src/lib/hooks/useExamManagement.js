@@ -24,6 +24,10 @@ export function useExamManagement() {
         .from('exams')
         .select(`
           *,
+          duties (
+            id,
+            status
+          ),
           exam_rooms (
             id,
             room_id,
@@ -291,9 +295,30 @@ export function useExamManagement() {
     }
   }, [fetchRoomsByFloor]);
 
-  const assignRoomsToExam = useCallback(async (examId, roomIds = []) => {
+  const assignRoomsToExam = useCallback(async (examId, roomItems = []) => {
     try {
-      const payload = roomIds.filter((id) => sanitizeUUID(id)).map((roomId) => ({ exam_id: examId, room_id: roomId }));
+      const payload = (roomItems ?? [])
+        .map((item) => {
+          if (typeof item === 'string') {
+            return {
+              exam_id: examId,
+              room_id: sanitizeUUID(item),
+              max_instructors: 1,
+            };
+          }
+
+          const roomId = sanitizeUUID(item?.room_id ?? item?.id ?? '');
+          const parsedMax = Number.parseInt(String(item?.max_instructors ?? 1), 10);
+          const maxInstructors = Number.isFinite(parsedMax) ? parsedMax : 1;
+
+          return {
+            exam_id: examId,
+            room_id: roomId,
+            max_instructors: maxInstructors,
+          };
+        })
+        .filter((row) => sanitizeUUID(row.room_id));
+
       if (!payload.length) return { error: null, data: [] };
       const { data, error: upsertError } = await supabase.from('exam_rooms').upsert(payload, { onConflict: 'exam_id,room_id' }).select('*');
       if (upsertError) throw upsertError;
