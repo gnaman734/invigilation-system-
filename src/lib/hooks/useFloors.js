@@ -28,7 +28,11 @@ export function useFloors() {
 
       const mapped = (data ?? []).map((floor) => ({
         ...floor,
-        room_count: floor.rooms?.[0]?.count ?? 0,
+        room_count: Number(
+          Array.isArray(floor.rooms)
+            ? floor.rooms?.[0]?.count ?? 0
+            : floor.rooms?.count ?? 0
+        ),
       }));
 
       setFloors(mapped);

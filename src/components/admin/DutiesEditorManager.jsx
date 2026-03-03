@@ -3,12 +3,14 @@ import { AlertCircle, ClipboardList, Trash2 } from 'lucide-react';
 import { useDuties } from '../../lib/hooks/useDuties';
 import { useExamsRooms } from '../../lib/hooks/useExamsRooms';
 import { useInstructors } from '../../lib/hooks/useInstructors';
+import { useToast } from '../shared/Toast';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 
 const emptyEditForm = { reporting_time: '', room_id: '', instructor_id: '', status: 'pending' };
 
 export default function DutiesEditorManager() {
+  const { addToast } = useToast();
   const { allDuties, loading, error, fetchAllDuties, updateDuty, deleteDuty } = useDuties();
   const { rooms, fetchAllRooms } = useExamsRooms();
   const { instructors, fetchAllInstructors } = useInstructors();
@@ -19,6 +21,8 @@ export default function DutiesEditorManager() {
   const [editForm, setEditForm] = useState(emptyEditForm);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [selectedDutyIds, setSelectedDutyIds] = useState([]);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     fetchAllDuties();
@@ -55,6 +59,8 @@ export default function DutiesEditorManager() {
     event.preventDefault();
     if (!editingDuty) return;
 
+    setSavingEdit(true);
+
     const result = await updateDuty(editingDuty.duty_id, {
       reporting_time: `${editForm.reporting_time}:00`,
       room_id: editForm.room_id,
@@ -62,13 +68,26 @@ export default function DutiesEditorManager() {
       status: editForm.status,
     });
 
-    if (!result?.error) closeEdit();
+    if (!result?.error) {
+      addToast({ type: 'success', message: 'Duty updated successfully.' });
+      closeEdit();
+    } else {
+      addToast({ type: 'error', message: result.error });
+    }
+
+    setSavingEdit(false);
   };
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     const result = await deleteDuty(deleteTarget.duty_id);
-    if (!result?.error) setDeleteTarget(null);
+    if (!result?.error) {
+      setDeleteTarget(null);
+      addToast({ type: result?.queued ? 'info' : 'success', message: result?.queued ? 'Offline: deletion queued.' : 'Duty deleted successfully.' });
+      return;
+    }
+
+    addToast({ type: 'error', message: result.error ?? 'Unable to delete duty.' });
   };
 
   const toggleBulkSelection = (dutyId) => {
@@ -76,17 +95,29 @@ export default function DutiesEditorManager() {
   };
 
   const bulkDelete = async () => {
-    for (const dutyId of selectedDutyIds) {
-      await deleteDuty(dutyId);
-    }
+    if (!selectedDutyIds.length) return;
+    setBulkBusy(true);
+    const results = await Promise.all(selectedDutyIds.map((dutyId) => deleteDuty(dutyId)));
+    const failures = results.filter((result) => result?.error).length;
+    addToast({
+      type: failures ? 'warning' : 'success',
+      message: failures ? `${selectedDutyIds.length - failures} deleted, ${failures} failed.` : `${selectedDutyIds.length} duties deleted successfully.`,
+    });
     setSelectedDutyIds([]);
+    setBulkBusy(false);
   };
 
   const bulkStatusUpdate = async (status) => {
-    for (const dutyId of selectedDutyIds) {
-      await updateDuty(dutyId, { status });
-    }
+    if (!selectedDutyIds.length) return;
+    setBulkBusy(true);
+    const results = await Promise.all(selectedDutyIds.map((dutyId) => updateDuty(dutyId, { status })));
+    const failures = results.filter((result) => result?.error).length;
+    addToast({
+      type: failures ? 'warning' : 'success',
+      message: failures ? `${selectedDutyIds.length - failures} updated, ${failures} failed.` : `${selectedDutyIds.length} duties marked ${status}.`,
+    });
     setSelectedDutyIds([]);
+    setBulkBusy(false);
   };
 
   return (
@@ -108,9 +139,9 @@ export default function DutiesEditorManager() {
       {selectedDutyIds.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/8 bg-white/3 px-3 py-2 text-xs text-white/55">
           <span>{selectedDutyIds.length} selected</span>
-          <button type="button" className="app-btn-danger px-3 py-1 text-xs" onClick={bulkDelete}>Delete all</button>
-          <button type="button" className="app-btn-ghost px-3 py-1 text-xs" onClick={() => bulkStatusUpdate('pending')}>Mark pending</button>
-          <button type="button" className="app-btn-ghost px-3 py-1 text-xs" onClick={() => bulkStatusUpdate('cancelled')}>Mark cancelled</button>
+          <button type="button" disabled={bulkBusy} className="app-btn-danger px-3 py-1 text-xs disabled:opacity-60" onClick={bulkDelete}>Delete all</button>
+          <button type="button" disabled={bulkBusy} className="app-btn-ghost px-3 py-1 text-xs disabled:opacity-60" onClick={() => bulkStatusUpdate('pending')}>Mark pending</button>
+          <button type="button" disabled={bulkBusy} className="app-btn-ghost px-3 py-1 text-xs disabled:opacity-60" onClick={() => bulkStatusUpdate('cancelled')}>Mark cancelled</button>
         </div>
       ) : null}
 
@@ -187,7 +218,7 @@ export default function DutiesEditorManager() {
             </select>
             <DialogFooter className="px-0 pb-0">
               <button type="button" className="app-btn-ghost" onClick={closeEdit}>Cancel</button>
-              <button type="submit" className="app-btn-primary">Save</button>
+              <button type="submit" disabled={savingEdit} className="app-btn-primary disabled:opacity-60">{savingEdit ? 'Saving...' : 'Save'}</button>
             </DialogFooter>
           </form>
         </DialogContent>

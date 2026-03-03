@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DoorOpen, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useRooms } from '../../lib/hooks/useRooms';
+import { useToast } from '../shared/Toast';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 
@@ -8,12 +9,17 @@ const departments = ['Computer Science', 'Mathematics', 'Physics', 'Electronics'
 const emptyRoomForm = { room_number: '', floor_id: '', department: 'Computer Science', capacity: 30, is_active: true, building: '' };
 
 export default function RoomsManager() {
+  const { addToast } = useToast();
   const { rooms, floors, loading, error, fetchAllRooms, createRoom, updateRoom, deleteRoom } = useRooms();
   const [activeFloor, setActiveFloor] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [form, setForm] = useState(emptyRoomForm);
+  const [formError, setFormError] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchAllRooms();
@@ -35,12 +41,14 @@ export default function RoomsManager() {
 
   const openCreate = () => {
     setEditingRoom(null);
+    setFormError('');
     setForm({ ...emptyRoomForm, floor_id: activeFloor === 'all' ? '' : activeFloor });
     setDialogOpen(true);
   };
 
   const openEdit = (room) => {
     setEditingRoom(room);
+    setFormError('');
     setForm({
       room_number: room.room_number ?? '',
       floor_id: room.floor_id ?? '',
@@ -54,18 +62,39 @@ export default function RoomsManager() {
 
   const submit = async (event) => {
     event.preventDefault();
+    setFormError('');
+    setSubmitting(true);
     const result = editingRoom ? await updateRoom(editingRoom.id, form) : await createRoom(form);
     if (!result?.error) {
       setDialogOpen(false);
       setForm(emptyRoomForm);
       setEditingRoom(null);
+      setFormError('');
+      addToast({ type: 'success', message: editingRoom ? 'Room updated successfully.' : 'Room created successfully.' });
+      setSubmitting(false);
+      return;
     }
+
+    setFormError(result.error || 'Unable to save room right now.');
+    addToast({ type: 'error', message: result.error || 'Unable to save room right now.' });
+    setSubmitting(false);
   };
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    setDeleteError('');
+    setDeleting(true);
     const result = await deleteRoom(deleteTarget.id);
-    if (!result?.error) setDeleteTarget(null);
+    if (!result?.error) {
+      setDeleteTarget(null);
+      setDeleteError('');
+      addToast({ type: 'success', message: 'Room deleted successfully.' });
+      setDeleting(false);
+      return;
+    }
+    setDeleteError(result.error || 'Unable to delete room right now.');
+    addToast({ type: 'error', message: result.error || 'Unable to delete room right now.' });
+    setDeleting(false);
   };
 
   return (
@@ -139,7 +168,14 @@ export default function RoomsManager() {
                     <button type="button" className="rounded-lg p-2 text-white/35 hover:bg-white/8 hover:text-white/70" onClick={() => openEdit(room)}>
                       <Pencil className="h-4 w-4" />
                     </button>
-                    <button type="button" className="rounded-lg p-2 text-white/35 hover:bg-red-500/10 hover:text-red-400" onClick={() => setDeleteTarget(room)}>
+                    <button
+                      type="button"
+                      className="rounded-lg p-2 text-white/35 hover:bg-red-500/10 hover:text-red-400"
+                      onClick={() => {
+                        setDeleteError('');
+                        setDeleteTarget(room);
+                      }}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -150,7 +186,17 @@ export default function RoomsManager() {
         </div>
       ) : null}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            setFormError('');
+            setEditingRoom(null);
+            setForm(emptyRoomForm);
+          }
+        }}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingRoom ? 'Edit Room' : 'Create Room'}</DialogTitle>
@@ -171,9 +217,10 @@ export default function RoomsManager() {
               <input type="checkbox" checked={Boolean(form.is_active)} onChange={(event) => setForm((prev) => ({ ...prev, is_active: event.target.checked }))} />
               Active room
             </label>
+            {formError ? <p className="text-xs text-red-400">{formError}</p> : null}
             <DialogFooter className="px-0 pb-0">
               <button type="button" className="app-btn-ghost" onClick={() => setDialogOpen(false)}>Cancel</button>
-              <button type="submit" className="app-btn-primary">{editingRoom ? 'Save' : 'Create'}</button>
+              <button type="submit" className="app-btn-primary" disabled={submitting || loading}>{submitting ? 'Saving...' : editingRoom ? 'Save' : 'Create'}</button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -181,9 +228,13 @@ export default function RoomsManager() {
 
       <ConfirmDialog
         isOpen={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
+        onClose={() => {
+          if (deleting) return;
+          setDeleteTarget(null);
+          setDeleteError('');
+        }}
         onConfirm={confirmDelete}
-        message={`Delete room ${deleteTarget?.room_number ?? ''}? This cannot be undone.`}
+        message={deleting ? 'Deleting room...' : `Delete room ${deleteTarget?.room_number ?? ''}? This cannot be undone.${deleteError ? `\n\n${deleteError}` : ''}`}
       />
     </section>
   );

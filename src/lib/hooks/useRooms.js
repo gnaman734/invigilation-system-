@@ -5,8 +5,12 @@ import { sanitizeText, sanitizeUUID } from '../utils/sanitize';
 function toFriendlyError(message, fallback) {
   if (!message) return fallback;
   if (/violates row-level security/i.test(message)) return 'You do not have permission to perform this action.';
+  if (/permission denied|insufficient privilege/i.test(message)) return 'Permission denied for this action. Make sure your account has admin role in Supabase JWT metadata.';
+  if (/foreign key constraint|is still referenced|violates foreign key/i.test(message)) {
+    return 'This room is linked to existing records and cannot be deleted directly.';
+  }
   if (/network|failed to fetch|timeout/i.test(message)) return 'Network issue detected. Please try again.';
-  return fallback;
+  return message || fallback;
 }
 
 export function useRooms() {
@@ -81,11 +85,13 @@ export function useRooms() {
       };
 
       if (!payload.room_number || !payload.floor_id) {
+        setError('Room number and floor are required.');
         setLoading(false);
         return { error: 'Room number and floor are required.' };
       }
 
       if (!Number.isFinite(payload.capacity) || payload.capacity < 1) {
+        setError('Capacity must be a positive number.');
         setLoading(false);
         return { error: 'Capacity must be a positive number.' };
       }
@@ -110,6 +116,7 @@ export function useRooms() {
 
     try {
       if (!sanitizeUUID(id)) {
+        setError('Invalid room selected.');
         setLoading(false);
         return { error: 'Invalid room selected.' };
       }
@@ -122,6 +129,7 @@ export function useRooms() {
       if (Object.prototype.hasOwnProperty.call(payload, 'capacity')) {
         const capacity = Number.parseInt(String(payload.capacity ?? 0), 10);
         if (!Number.isFinite(capacity) || capacity < 1) {
+          setError('Capacity must be a positive number.');
           setLoading(false);
           return { error: 'Capacity must be a positive number.' };
         }
@@ -148,6 +156,7 @@ export function useRooms() {
 
     try {
       if (!sanitizeUUID(id)) {
+        setError('Invalid room selected.');
         setLoading(false);
         return { error: 'Invalid room selected.' };
       }

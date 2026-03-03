@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pencil, ShieldOff, Users } from 'lucide-react';
 import { useInstructors } from '../../lib/hooks/useInstructors';
+import { useToast } from '../shared/Toast';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 
@@ -10,12 +11,15 @@ function formatPunctuality(value) {
 }
 
 export default function InstructorSetupManager() {
+  const { addToast } = useToast();
   const { instructors, loading, error, fetchAllInstructors, updateInstructor, deactivateInstructor } = useInstructors();
   const [search, setSearch] = useState('');
   const [editingInstructor, setEditingInstructor] = useState(null);
   const [deactivateTarget, setDeactivateTarget] = useState(null);
   const [editName, setEditName] = useState('');
   const [editDepartment, setEditDepartment] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
 
   useEffect(() => {
     fetchAllInstructors({ force: true });
@@ -45,19 +49,35 @@ export default function InstructorSetupManager() {
     event.preventDefault();
     if (!editingInstructor) return;
 
+    setSavingEdit(true);
+
     const result = await updateInstructor(editingInstructor.instructor_id, {
       name: editName,
       email: editingInstructor.email,
       department: editDepartment,
     });
 
-    if (!result?.error) closeEdit();
+    if (!result?.error) {
+      addToast({ type: 'success', message: 'Instructor updated successfully.' });
+      closeEdit();
+    } else {
+      addToast({ type: 'error', message: result.error });
+    }
+
+    setSavingEdit(false);
   };
 
   const confirmDeactivate = async () => {
     if (!deactivateTarget) return;
+    setDeactivating(true);
     const result = await deactivateInstructor(deactivateTarget.instructor_id);
-    if (!result?.error) setDeactivateTarget(null);
+    if (!result?.error) {
+      setDeactivateTarget(null);
+      addToast({ type: 'success', message: 'Instructor deactivated successfully.' });
+    } else {
+      addToast({ type: 'error', message: result.error });
+    }
+    setDeactivating(false);
   };
 
   return (
@@ -136,7 +156,7 @@ export default function InstructorSetupManager() {
             <input className="app-input" value={editDepartment} onChange={(event) => setEditDepartment(event.target.value)} required />
             <DialogFooter className="px-0 pb-0">
               <button type="button" className="app-btn-ghost" onClick={closeEdit}>Cancel</button>
-              <button type="submit" className="app-btn-primary">Save</button>
+              <button type="submit" disabled={savingEdit} className="app-btn-primary disabled:opacity-60">{savingEdit ? 'Saving...' : 'Save'}</button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -146,7 +166,7 @@ export default function InstructorSetupManager() {
         isOpen={Boolean(deactivateTarget)}
         onClose={() => setDeactivateTarget(null)}
         onConfirm={confirmDeactivate}
-        message={`Deactivate ${deactivateTarget?.name ?? 'this instructor'}?`}
+        message={deactivating ? 'Deactivating instructor...' : `Deactivate ${deactivateTarget?.name ?? 'this instructor'}?`}
       />
     </section>
   );

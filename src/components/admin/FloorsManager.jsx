@@ -1,18 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Layers, Plus, Pencil, Trash2 } from 'lucide-react';
 import { useFloors } from '../../lib/hooks/useFloors';
+import { useToast } from '../shared/Toast';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 
 const emptyFloorForm = { floor_number: '', floor_label: '', building: '' };
 
 export default function FloorsManager() {
+  const { addToast } = useToast();
   const { floors, loading, error, fetchAllFloors, createFloor, updateFloor, deleteFloor } = useFloors();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(emptyFloorForm);
   const [editingId, setEditingId] = useState('');
   const [inlineForm, setInlineForm] = useState(emptyFloorForm);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [savingInline, setSavingInline] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchAllFloors();
@@ -31,26 +36,43 @@ export default function FloorsManager() {
 
   const saveInlineEdit = async () => {
     if (!editingId) return;
+    setSavingInline(true);
     const result = await updateFloor(editingId, inlineForm);
     if (!result?.error) {
       setEditingId('');
       setInlineForm(emptyFloorForm);
+      addToast({ type: 'success', message: 'Floor updated successfully.' });
+    } else {
+      addToast({ type: 'error', message: result.error });
     }
+    setSavingInline(false);
   };
 
   const submitCreate = async (event) => {
     event.preventDefault();
+    setCreating(true);
     const result = await createFloor(createForm);
     if (!result?.error) {
       setCreateForm(emptyFloorForm);
       setIsCreateOpen(false);
+      addToast({ type: 'success', message: 'Floor created successfully.' });
+    } else {
+      addToast({ type: 'error', message: result.error });
     }
+    setCreating(false);
   };
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    setDeleting(true);
     const result = await deleteFloor(deleteTarget.id);
-    if (!result?.error) setDeleteTarget(null);
+    if (!result?.error) {
+      setDeleteTarget(null);
+      addToast({ type: 'success', message: 'Floor deleted successfully.' });
+    } else {
+      addToast({ type: 'error', message: result.error });
+    }
+    setDeleting(false);
   };
 
   return (
@@ -94,8 +116,8 @@ export default function FloorsManager() {
                     <input className="app-input" value={inlineForm.floor_label} onChange={(event) => setInlineForm((prev) => ({ ...prev, floor_label: event.target.value }))} />
                     <input className="app-input" value={inlineForm.building} onChange={(event) => setInlineForm((prev) => ({ ...prev, building: event.target.value }))} />
                     <div className="flex items-center gap-2">
-                      <button type="button" className="app-btn-primary px-3 py-2 text-xs" onClick={saveInlineEdit}>Save</button>
-                      <button type="button" className="app-btn-ghost px-3 py-2 text-xs" onClick={() => setEditingId('')}>Cancel</button>
+                      <button type="button" disabled={savingInline} className="app-btn-primary px-3 py-2 text-xs disabled:opacity-60" onClick={saveInlineEdit}>{savingInline ? 'Saving...' : 'Save'}</button>
+                      <button type="button" disabled={savingInline} className="app-btn-ghost px-3 py-2 text-xs disabled:opacity-60" onClick={() => { setEditingId(''); setInlineForm(emptyFloorForm); }}>Cancel</button>
                     </div>
                   </div>
                 ) : (
@@ -124,7 +146,13 @@ export default function FloorsManager() {
         </div>
       ) : null}
 
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+      <Dialog open={isCreateOpen} onOpenChange={(open) => {
+        setIsCreateOpen(open);
+        if (!open) {
+          setCreateForm(emptyFloorForm);
+          setCreating(false);
+        }
+      }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Create Floor</DialogTitle>
@@ -134,8 +162,8 @@ export default function FloorsManager() {
             <input className="app-input" placeholder="Floor label" value={createForm.floor_label} onChange={(event) => setCreateForm((prev) => ({ ...prev, floor_label: event.target.value }))} required />
             <input className="app-input" placeholder="Building" value={createForm.building} onChange={(event) => setCreateForm((prev) => ({ ...prev, building: event.target.value }))} />
             <DialogFooter className="px-0 pb-0">
-              <button type="button" className="app-btn-ghost" onClick={() => setIsCreateOpen(false)}>Cancel</button>
-              <button type="submit" className="app-btn-primary">Create</button>
+              <button type="button" disabled={creating} className="app-btn-ghost disabled:opacity-60" onClick={() => setIsCreateOpen(false)}>Cancel</button>
+              <button type="submit" disabled={creating} className="app-btn-primary disabled:opacity-60">{creating ? 'Creating...' : 'Create'}</button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -143,9 +171,9 @@ export default function FloorsManager() {
 
       <ConfirmDialog
         isOpen={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
+        onClose={() => !deleting && setDeleteTarget(null)}
         onConfirm={confirmDelete}
-        message={`Delete ${deleteTarget?.floor_label ?? 'this floor'}? This cannot be undone.`}
+        message={deleting ? 'Deleting floor...' : `Delete ${deleteTarget?.floor_label ?? 'this floor'}? This cannot be undone.`}
       />
     </section>
   );
