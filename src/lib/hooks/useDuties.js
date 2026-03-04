@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { format, isBefore, parseISO, startOfToday } from 'date-fns';
 import { supabase } from '../supabase';
 import { useAuthStore } from '../../store/authStore';
@@ -52,11 +52,13 @@ function flattenGroups(groups) {
 }
 
 function toFriendlyError(message, fallback) {
+  const normalized = String(message ?? '').toLowerCase();
+
   if (!message) {
     return fallback;
   }
 
-  if (/violates row-level security/i.test(message)) {
+  if (/violates row-level security|permission denied|not authorized|forbidden|403/i.test(normalized)) {
     return 'You do not have permission to perform this action.';
   }
 
@@ -156,6 +158,7 @@ export function useDuties() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [processingDutyIds, setProcessingDutyIds] = useState([]);
+  const dutyContextCacheRef = useRef({});
 
   const updateInstructorGroupedDuties = useCallback((updater) => {
     setUpcomingDuties((previousUpcoming) => {
@@ -187,6 +190,106 @@ export function useDuties() {
   const fetchDutyDetailById = useCallback(async (dutyId) => {
     const { data } = await fetchDutiesWithFallback({ dutyId });
     return data?.[0] ?? null;
+  }, []);
+
+  const fetchDutyWithExamContext = useCallback(async (dutyId) => {
+    if (!sanitizeUUID(dutyId)) {
+      return { error: 'Invalid duty selected.' };
+    }
+
+    const cached = dutyContextCacheRef.current[dutyId];
+    if (cached) {
+      return { error: null, data: cached, cached: true };
+    }
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('duties')
+        .select(`
+          id,
+          exam_id,
+          room_id,
+          instructor_id,
+          exam_room_instructor_id,
+          reporting_time,
+          arrival_time,
+          status,
+          exams (
+            exam_date,
+            subject,
+            department,
+            start_time,
+            end_time,
+            shift_start,
+            shift_end,
+            notes
+          ),
+          rooms (
+            room_number,
+            building,
+            capacity,
+            floors (floor_label)
+          ),
+          exam_room_instructors!duties_exam_room_instructor_id_fkey (
+            id,
+            exam_room_id,
+            exam_rooms (
+              id,
+              exam_room_instructors (
+                id,
+                instructor_id,
+                instructors (
+                  id,
+                  name,
+                  department
+                )
+              )
+            )
+          )
+        `)
+        .eq('id', dutyId)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+      if (!data) return { error: 'Duty not found.' };
+
+      const roomLinks = data.exam_room_instructors?.exam_rooms?.exam_room_instructors ?? [];
+      const otherInstructors = roomLinks
+        .map((item) => item.instructors)
+        .filter((instructor) => instructor?.id && instructor.id !== data.instructor_id)
+        .map((instructor) => ({
+          instructor_id: instructor.id,
+          name: instructor.name,
+          department: instructor.department,
+        }));
+
+      const expanded = {
+        duty_id: data.id,
+        exam_id: data.exam_id,
+        subject: data.exams?.subject ?? null,
+        exam_date: data.exams?.exam_date ?? null,
+        room_id: data.room_id,
+        instructor_id: data.instructor_id,
+        reporting_time: data.reporting_time,
+        arrival_time: data.arrival_time,
+        status: data.status,
+        room_number: data.rooms?.room_number ?? '',
+        building: data.rooms?.building ?? '',
+        floor_label: data.rooms?.floors?.floor_label ?? null,
+        capacity: data.rooms?.capacity ?? null,
+        exam_department: data.exams?.department ?? null,
+        start_time: data.exams?.shift_start || data.exams?.start_time || null,
+        end_time: data.exams?.shift_end || data.exams?.end_time || null,
+        notes: data.exams?.notes ?? null,
+        other_instructors: otherInstructors,
+      };
+
+      dutyContextCacheRef.current[dutyId] = expanded;
+      return { error: null, data: expanded, cached: false };
+    } catch (caughtError) {
+      const message = toFriendlyError(caughtError?.message, 'Unable to fetch exam context right now.');
+      return { error: message };
+    }
   }, []);
 
   const fetchInstructorDuties = useCallback(async () => {
@@ -269,6 +372,10 @@ export function useDuties() {
 
       if (!dutyId) {
         return;
+      }
+
+      if (dutyContextCacheRef.current[dutyId]) {
+        delete dutyContextCacheRef.current[dutyId];
       }
 
       if (eventType === 'DELETE') {
@@ -368,15 +475,11 @@ export function useDuties() {
 
       setProcessingDutyIds((previous) => [...new Set([...previous, dutyId])]);
 
-      const previousUpcoming = upcomingDuties;
-      const previousPast = pastDuties;
-
       try {
         const { data: dutyData, error: dutyError } = await supabase
           .from('duties')
           .select('id, reporting_time')
           .eq('id', dutyId)
-          .eq('instructor_id', instructorId)
           .single();
 
         if (dutyError) {
@@ -385,18 +488,6 @@ export function useDuties() {
 
         const nextStatus = getStatus(dutyData.reporting_time, arrivalTime);
 
-        updateInstructorGroupedDuties((duties) =>
-          duties.map((duty) =>
-            duty.duty_id === dutyId
-              ? {
-                  ...duty,
-                  arrival_time: arrivalTime,
-                  status: nextStatus,
-                }
-              : duty
-          )
-        );
-
         const performUpdate = async () => {
           const { error: updateError } = await supabase
             .from('duties')
@@ -404,8 +495,7 @@ export function useDuties() {
               arrival_time: arrivalTime,
               status: nextStatus,
             })
-            .eq('id', dutyId)
-            .eq('instructor_id', instructorId);
+            .eq('id', dutyId);
 
           if (updateError) {
             throw updateError;
@@ -420,11 +510,21 @@ export function useDuties() {
         }
 
         await performUpdate();
+
+        updateInstructorGroupedDuties((duties) =>
+          duties.map((duty) =>
+            duty.duty_id === dutyId
+              ? {
+                  ...duty,
+                  arrival_time: arrivalTime,
+                  status: nextStatus,
+                }
+              : duty
+          )
+        );
+
         return { error: null, status: nextStatus };
       } catch (caughtError) {
-        setUpcomingDuties(previousUpcoming);
-        setPastDuties(previousPast);
-
         const message = toFriendlyError(caughtError?.message, 'Unable to mark arrival. Please try again.');
         setError(message);
         addToast({ type: 'error', message: 'Unable to mark arrival right now.' });
@@ -433,7 +533,7 @@ export function useDuties() {
         setProcessingDutyIds((previous) => previous.filter((id) => id !== dutyId));
       }
     },
-    [addToast, instructorId, pastDuties, upcomingDuties, updateInstructorGroupedDuties]
+    [addToast, instructorId, updateInstructorGroupedDuties]
   );
 
   const createDuty = useCallback(
@@ -625,6 +725,7 @@ export function useDuties() {
     updateDuty,
     deleteDuty,
     markArrival,
+    fetchDutyWithExamContext,
     processingDutyIds,
   };
 }

@@ -54,8 +54,9 @@ function teardownChannel() {
   clearReconnectTimer();
 
   if (manager.channel) {
-    supabase.removeChannel(manager.channel);
+    const channelToRemove = manager.channel;
     manager.channel = null;
+    supabase.removeChannel(channelToRemove);
   }
 }
 
@@ -95,7 +96,7 @@ function connect() {
 
   setStatus('connecting');
 
-  manager.channel = supabase
+  const channel = supabase
     .channel('global-realtime-sync')
     .on(
       'postgres_changes',
@@ -125,12 +126,18 @@ function connect() {
       (payload) => dispatchPayload('analytics', payload)
     )
     .subscribe((state) => {
+      if (manager.channel !== channel) {
+        return;
+      }
+
       handleSubscriptionState(state);
 
       if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT' || state === 'CLOSED') {
         teardownChannel();
       }
     });
+
+  manager.channel = channel;
 }
 
 function initManagerIfNeeded() {

@@ -32,7 +32,7 @@ export default function ConnectionStatus() {
   const { isOnline } = useOnlineStatus();
   const [showTooltip, setShowTooltip] = useState(false);
   const [queuedCount, setQueuedCount] = useState(0);
-  const { connectionStatus, manualReconnect } = useRealtime();
+  const { connectionStatus, retryCount, manualReconnect } = useRealtime();
 
   useEffect(() => {
     const unsubscribe = subscribeOfflineQueue((nextSize) => setQueuedCount(nextSize));
@@ -64,7 +64,9 @@ export default function ConnectionStatus() {
     return connectionStatus;
   }, [isOnline, connectionStatus]);
 
+  const isReconnecting = status === 'disconnected' && isOnline && retryCount > 0;
   const styles = STATUS_STYLES[status] ?? STATUS_STYLES.disconnected;
+  const label = isReconnecting ? 'Reconnecting...' : styles.text;
   const canReconnect = status === 'disconnected' || status === 'error';
 
   return (
@@ -91,7 +93,7 @@ export default function ConnectionStatus() {
           className={`inline-flex items-center gap-2 rounded-xl px-0 py-1.5 text-xs transition-colors duration-200 ${styles.wrapper} ${canReconnect ? 'cursor-pointer' : 'cursor-default'}`}
         >
           <span className={`h-1.5 w-1.5 rounded-full transition-colors duration-200 ${styles.dot}`} />
-          <span>{styles.text}</span>
+          <span>{label}</span>
           {queuedCount > 0 ? <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-white/50">{queuedCount}</span> : null}
         </button>
 

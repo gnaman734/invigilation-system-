@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { Navigate, Outlet, Route, RouterProvider, createBrowserRouter, createRoutesFromElements } from 'react-router-dom';
 import App from './App';
 import ProtectedRoute from './components/shared/ProtectedRoute';
+import ErrorBoundary from './components/shared/ErrorBoundary';
 import { useAuthStore } from './store/authStore';
 import { ToastProvider, useToast } from './components/shared/Toast';
 import { supabaseConfigError } from './lib/supabase';
@@ -12,9 +13,11 @@ const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const AdminDashboard = lazy(() => import('./pages/admin/CleanDashboard'));
 const ExamManagement = lazy(() => import('./pages/admin/ExamManagement'));
+const CreateExamPage = lazy(() => import('./pages/admin/CreateExamPage'));
 const ExamDetail = lazy(() => import('./pages/admin/ExamDetail'));
 const InstructorDashboard = lazy(() => import('./pages/instructor/Dashboard'));
 const InstructorProfile = lazy(() => import('./pages/instructor/Profile'));
+const InstructorExamDetail = lazy(() => import('./pages/instructor/ExamDetail'));
 
 function StartupGate() {
   const initialize = useAuthStore((state) => state.initialize);
@@ -120,6 +123,15 @@ const router = createBrowserRouter(
         />
 
         <Route
+          path="admin/exams/create"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <CreateExamPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="admin/exams/:examId"
           element={
             <ProtectedRoute allowedRole="admin">
@@ -132,7 +144,9 @@ const router = createBrowserRouter(
           path="instructor/dashboard"
           element={
             <ProtectedRoute allowedRole="instructor">
-              <InstructorDashboard />
+              <ErrorBoundary>
+                <InstructorDashboard />
+              </ErrorBoundary>
             </ProtectedRoute>
           }
         />
@@ -141,7 +155,20 @@ const router = createBrowserRouter(
           path="instructor/profile"
           element={
             <ProtectedRoute allowedRole="instructor">
-              <InstructorProfile />
+              <ErrorBoundary>
+                <InstructorProfile />
+              </ErrorBoundary>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="instructor/exams/:dutyId"
+          element={
+            <ProtectedRoute allowedRole="instructor">
+              <ErrorBoundary>
+                <InstructorExamDetail />
+              </ErrorBoundary>
             </ProtectedRoute>
           }
         />

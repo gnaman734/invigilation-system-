@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { AlertCircle, AlertTriangle, Building2, CheckCircle, ClipboardList, Clock3, Mail, Star, TrendingUp } from 'lucide-react';
 import { useInstructors } from '../../lib/hooks/useInstructors';
 import { useDuties } from '../../lib/hooks/useDuties';
@@ -31,6 +32,10 @@ function DutyStatusDot({ status }) {
 }
 
 function ActivityStatusBadge({ status }) {
+  if (status === 'cancelled') {
+    return <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-white/30">Cancelled</span>;
+  }
+
   if (status === 'on-time') {
     return <span className="rounded-full border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[11px] text-green-400">On Time</span>;
   }
@@ -45,10 +50,16 @@ function ActivityStatusBadge({ status }) {
 export default function InstructorProfile() {
   const { instructor, stats, punctualityPercentage, loading, error } = useInstructors();
   const { upcomingDuties, pastDuties } = useDuties();
+  const [showSkeleton, setShowSkeleton] = useState(true);
+
+  const safeTotalDuties = Number(stats?.total_duties ?? 0);
+  const safeOnTime = Number(stats?.on_time_arrivals ?? 0);
+  const safeLate = Number(stats?.late_arrivals ?? 0);
+  const safePunctuality = Number.isFinite(Number(punctualityPercentage)) ? Number(punctualityPercentage) : 0;
 
   const allDuties = [...(upcomingDuties ?? []), ...(pastDuties ?? [])]
     .flatMap((group) => group.duties ?? [])
-    .sort((a, b) => `${b.exam_date ?? ''}${b.reporting_time ?? ''}`.localeCompare(`${a.exam_date ?? ''}${a.reporting_time ?? ''}`));
+    .sort((a, b) => String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')));
 
   const recentActivity = allDuties.slice(0, 5);
   const initials = String(instructor?.name ?? 'IN')
@@ -59,13 +70,23 @@ export default function InstructorProfile() {
     .join('')
     .toUpperCase();
 
-  const teamAverage = Math.max(1, Math.round((stats.total_duties + 6) / 2));
-  const dutiesVsAverage = Math.min(100, Math.round((stats.total_duties / teamAverage) * 100));
+  const teamAverage = Math.max(1, Math.round((safeTotalDuties + 6) / 2));
+  const dutiesVsAverage = Math.min(100, Math.round((safeTotalDuties / teamAverage) * 100));
 
   const circumference = 2 * Math.PI * 24;
-  const progressOffset = circumference - (Math.max(0, Math.min(100, punctualityPercentage)) / 100) * circumference;
+  const progressOffset = circumference - (Math.max(0, Math.min(100, safePunctuality)) / 100) * circumference;
 
-  if (loading) {
+  useEffect(() => {
+    if (loading) {
+      setShowSkeleton(true);
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => setShowSkeleton(false), 400);
+    return () => window.clearTimeout(timer);
+  }, [loading]);
+
+  if (showSkeleton || loading) {
     return <ProfileSkeleton />;
   }
 
@@ -86,7 +107,7 @@ export default function InstructorProfile() {
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/20 bg-amber-500/12 text-xl text-amber-400">
             {initials || 'IN'}
           </div>
-          <h1 className="mt-4 text-2xl text-white/90">{instructor?.name ?? '--'}</h1>
+          <h1 className="mt-4 font-serif text-2xl text-white/90">{instructor?.name ?? '--'}</h1>
           <p className="mt-1 text-sm text-white/40">
             <Building2 className="mr-1 inline h-3.5 w-3.5" />
             {instructor?.department ?? '--'}
@@ -101,7 +122,7 @@ export default function InstructorProfile() {
       <section className="mt-6 grid grid-cols-2 gap-3">
         <article className="card-interactive rounded-2xl border border-white/8 bg-[#111118] p-5 transition-all duration-200 hover:-translate-y-[1px] hover:border-white/14 hover:shadow-[0_8px_24px_rgba(0,0,0,0.3)]">
           <ClipboardList className="h-4 w-4 text-white/25" />
-          <p className="mt-3 text-3xl font-bold text-white/90">{stats.total_duties}</p>
+          <p className="mt-3 font-serif text-3xl font-bold text-white/90">{safeTotalDuties}</p>
           <p className="mt-1 text-xs text-white/35">Total Duties</p>
           <div className="mt-3">
             <div className="h-1.5 w-full rounded-full bg-white/8">
@@ -113,7 +134,7 @@ export default function InstructorProfile() {
 
         <article className="card-interactive rounded-2xl border border-white/8 bg-[#111118] p-5 transition-all duration-200 hover:-translate-y-[1px] hover:border-white/14 hover:shadow-[0_8px_24px_rgba(0,0,0,0.3)]">
           <Clock3 className="h-4 w-4 text-white/25" />
-          <p className="mt-3 text-3xl font-bold text-amber-400">{punctualityPercentage}%</p>
+          <p className="mt-3 font-serif text-3xl font-bold text-amber-400">{safePunctuality}%</p>
           <p className="mt-1 text-xs text-white/35">Punctuality Rate</p>
           <div className="mt-3 flex items-center justify-center">
             <svg width="62" height="62" viewBox="0 0 62 62">
@@ -136,29 +157,29 @@ export default function InstructorProfile() {
 
         <article className="card-interactive rounded-2xl border border-white/8 bg-[#111118] p-5 transition-all duration-200 hover:-translate-y-[1px] hover:border-white/14 hover:shadow-[0_8px_24px_rgba(0,0,0,0.3)]">
           <CheckCircle className="h-4 w-4 text-white/25" />
-          <p className="mt-3 text-3xl font-bold text-green-400">{stats.on_time_arrivals}</p>
+          <p className="mt-3 font-serif text-3xl font-bold text-green-400">{safeOnTime}</p>
           <p className="mt-1 text-xs text-white/35">On-Time Arrivals</p>
-          <p className="mt-2 text-xs text-white/25">out of {stats.total_duties} total</p>
+          <p className="mt-2 text-xs text-white/25">out of {safeTotalDuties} total</p>
         </article>
 
         <article className="card-interactive rounded-2xl border border-white/8 bg-[#111118] p-5 transition-all duration-200 hover:-translate-y-[1px] hover:border-white/14 hover:shadow-[0_8px_24px_rgba(0,0,0,0.3)]">
           <AlertCircle className="h-4 w-4 text-white/25" />
-          <p className={`mt-3 text-3xl font-bold ${stats.late_arrivals > 0 ? 'text-red-400' : 'text-white/90'}`}>{stats.late_arrivals}</p>
+          <p className={`mt-3 font-serif text-3xl font-bold ${safeLate > 0 ? 'text-red-400' : 'text-white/90'}`}>{safeLate}</p>
           <p className="mt-1 text-xs text-white/35">Late Arrivals</p>
-          {stats.late_arrivals === 0 ? <p className="mt-2 text-xs text-green-400/60">Perfect record</p> : null}
+          {safeLate === 0 ? <p className="mt-2 text-xs text-green-400/60">Perfect record</p> : null}
         </article>
       </section>
 
       <section
         className={`mt-4 rounded-2xl border p-5 ${
-          punctualityPercentage >= 90
+          safePunctuality >= 90
             ? 'border-green-500/15 bg-green-500/5'
-            : punctualityPercentage >= 70
+            : safePunctuality >= 70
               ? 'border-amber-500/15 bg-amber-500/5'
               : 'border-red-500/15 bg-red-500/5'
         }`}
       >
-        {punctualityPercentage >= 90 ? (
+        {safePunctuality >= 90 ? (
           <>
             <p className="text-sm font-medium text-green-400">
               <Star className="mr-1 inline h-3.5 w-3.5" />
@@ -168,7 +189,7 @@ export default function InstructorProfile() {
           </>
         ) : null}
 
-        {punctualityPercentage >= 70 && punctualityPercentage < 90 ? (
+        {safePunctuality >= 70 && safePunctuality < 90 ? (
           <>
             <p className="text-sm font-medium text-amber-400">
               <TrendingUp className="mr-1 inline h-3.5 w-3.5" />
@@ -178,7 +199,7 @@ export default function InstructorProfile() {
           </>
         ) : null}
 
-        {punctualityPercentage < 70 ? (
+        {safePunctuality < 70 ? (
           <>
             <p className="text-sm font-medium text-red-400">
               <AlertTriangle className="mr-1 inline h-3.5 w-3.5" />
@@ -195,7 +216,7 @@ export default function InstructorProfile() {
         </header>
 
         {recentActivity.length === 0 ? (
-          <div className="px-5 py-10 text-center text-xs text-white/25">No activity yet</div>
+          <div className="px-5 py-10 text-center text-xs text-white/25">No duty history yet</div>
         ) : (
           recentActivity.map((duty, index) => (
             <div

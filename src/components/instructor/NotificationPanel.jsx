@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, ClipboardList, Clock3, X } from 'lucide-react';
+import { Bell, BellOff, ClipboardList, Clock3, X } from 'lucide-react';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../shared/Toast';
@@ -203,7 +203,7 @@ export default function NotificationPanel({ instructorId, onJumpToDuty }) {
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-white/10 bg-[#16161F] shadow-2xl">
+        <div className="fixed inset-x-3 bottom-3 z-50 overflow-hidden rounded-2xl border border-white/10 bg-[#16161F] shadow-2xl md:absolute md:inset-auto md:right-0 md:top-full md:mt-2 md:w-80">
           <div className="flex items-center justify-between border-b border-white/6 px-4 py-3">
             <p className="text-sm text-white/70">Notifications</p>
             <button type="button" onClick={markAllRead} className="text-xs text-white/30 transition-colors duration-200 hover:text-white/60">
@@ -213,7 +213,7 @@ export default function NotificationPanel({ instructorId, onJumpToDuty }) {
 
           {notifications.length === 0 ? (
             <div className="py-8 text-center">
-              <Bell className="mx-auto h-8 w-8 text-white/10" />
+              <BellOff className="mx-auto h-8 w-8 text-white/10" />
               <p className="mt-2 text-xs text-white/25">No notifications</p>
             </div>
           ) : (
