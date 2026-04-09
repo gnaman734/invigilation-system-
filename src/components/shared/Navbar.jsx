@@ -68,7 +68,24 @@ export default function Navbar() {
   };
 
   const handleBack = () => {
-    navigate(-1);
+    const isInitialEntry = location.key === 'default' || window.history.length <= 1;
+
+    if (!isInitialEntry) {
+      navigate(-1);
+      return;
+    }
+
+    if (role === 'admin' || location.pathname.startsWith('/admin')) {
+      navigate('/admin/dashboard?tab=overview');
+      return;
+    }
+
+    if (role === 'instructor' || location.pathname.startsWith('/instructor')) {
+      navigate('/instructor/profile');
+      return;
+    }
+
+    navigate('/login');
   };
 
   const handleLogout = async () => {
