@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   BarChart2,
@@ -43,8 +43,8 @@ export default function CleanDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [active, setActive] = useState('overview');
   const [examWizardOpen, setExamWizardOpen] = useState(false);
-  const { instructors, pendingRequests } = useInstructors();
-  const { allDuties } = useDuties();
+  const { instructors, pendingRequests, fetchAllInstructors } = useInstructors();
+  const { allDuties, fetchAllDuties } = useDuties();
 
   const fallback = <div className="skeleton h-40" />;
 
@@ -66,6 +66,11 @@ export default function CleanDashboard() {
     setActive(tabId);
     setSearchParams({ tab: tabId }, { replace: true });
   };
+
+  const handlePunctualityRealtimeRefresh = useCallback(() => {
+    fetchAllDuties();
+    fetchAllInstructors({ force: true });
+  }, [fetchAllDuties, fetchAllInstructors]);
 
   return (
     <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[230px,1fr]">
@@ -187,7 +192,16 @@ export default function CleanDashboard() {
 
         {active === 'punctuality' ? (
           <Suspense fallback={fallback}>
-            <PunctualityPanel instructors={instructors} duties={allDuties} loading={false} error="" showOverallStats showTrendTable showRecentLateArrivals />
+            <PunctualityPanel
+              instructors={instructors}
+              duties={allDuties}
+              loading={false}
+              error=""
+              showOverallStats
+              showTrendTable
+              showRecentLateArrivals
+              onRealtimeRefresh={handlePunctualityRealtimeRefresh}
+            />
           </Suspense>
         ) : null}
 

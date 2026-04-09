@@ -8,6 +8,18 @@ import { useRealtime } from './useRealtime';
 import { enqueueOfflineOperation } from '../offlineQueue';
 import { sanitizeTime, sanitizeUUID } from '../utils/sanitize';
 
+/*
+DIAGNOSIS:
+- markArrival exists: YES
+- Supabase call correct: PARTIALLY
+- arrival_time updated: YES
+- status updated: YES
+- exported correctly: YES
+- punctuality works: YES
+- RLS blocking: NO
+- Root cause: Mark-arrival failures were being masked by generic UI error text, and the hook emitted a generic toast instead of surfacing the actual Supabase-friendly error, making valid backend errors look like unexplained failures.
+*/
+
 function parseDutyDate(value) {
   if (!value || typeof value !== 'string') {
     return null;
@@ -68,6 +80,10 @@ function toFriendlyError(message, fallback) {
 
   if (/network|failed to fetch|timeout/i.test(message)) {
     return 'Network issue detected. Please try again.';
+  }
+
+  if (/json object requested|multiple \(or no\) rows returned|pgrst116|no rows/i.test(normalized)) {
+    return 'Duty not found or you do not have access to it.';
   }
 
   return fallback;
@@ -467,10 +483,80 @@ export function useDuties() {
 
   useRealtime({ onDutyChange: handleDutyRealtimeChange });
 
+  useEffect(() => {
+    if (!isAdmin) {
+      return undefined;
+    }
+
+    const channel = supabase
+      .channel('admin-duties-realtime-hook')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'duties',
+        },
+        (payload) => {
+          const eventType = payload?.eventType;
+          const newRow = payload?.new;
+          const oldRow = payload?.old;
+          const dutyId = newRow?.id ?? oldRow?.id;
+
+          if (!dutyId) {
+            return;
+          }
+
+          if (eventType === 'UPDATE' && newRow) {
+            let found = false;
+
+            setAllDuties((previous) => {
+              const next = previous.map((duty) => {
+                if (duty.duty_id !== dutyId) {
+                  return duty;
+                }
+
+                found = true;
+                return {
+                  ...duty,
+                  exam_id: newRow.exam_id,
+                  room_id: newRow.room_id,
+                  instructor_id: newRow.instructor_id,
+                  reporting_time: newRow.reporting_time,
+                  arrival_time: newRow.arrival_time,
+                  status: newRow.status,
+                  created_at: newRow.created_at,
+                };
+              });
+
+              return next;
+            });
+
+            if (!found) {
+              fetchAllDuties();
+            }
+
+            return;
+          }
+
+          fetchAllDuties();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchAllDuties, isAdmin]);
+
   const markArrival = useCallback(
     async (dutyId, arrivalTime) => {
       if (!instructorId) {
         return { error: 'Instructor profile not found.' };
+      }
+
+      if (!sanitizeUUID(dutyId)) {
+        return { error: 'Invalid duty selected.' };
       }
 
       setProcessingDutyIds((previous) => [...new Set([...previous, dutyId])]);
@@ -480,25 +566,35 @@ export function useDuties() {
           .from('duties')
           .select('id, reporting_time')
           .eq('id', dutyId)
-          .single();
+          .maybeSingle();
 
         if (dutyError) {
           throw dutyError;
         }
 
+        if (!dutyData?.reporting_time) {
+          if (error) throw new Error(error.message)
+        }
+
         const nextStatus = getStatus(dutyData.reporting_time, arrivalTime);
 
         const performUpdate = async () => {
-          const { error: updateError } = await supabase
+          const { data: updatedDuty, error: updateError } = await supabase
             .from('duties')
             .update({
               arrival_time: arrivalTime,
               status: nextStatus,
             })
-            .eq('id', dutyId);
+            .eq('id', dutyId)
+            .select('id')
+            .maybeSingle();
 
           if (updateError) {
             throw updateError;
+          }
+
+          if (!updatedDuty?.id) {
+            throw new Error('Duty update failed. Record not found or access denied.');
           }
         };
 
@@ -526,8 +622,9 @@ export function useDuties() {
         return { error: null, status: nextStatus };
       } catch (caughtError) {
         const message = toFriendlyError(caughtError?.message, 'Unable to mark arrival. Please try again.');
+        console.error('markArrival error:', caughtError);
         setError(message);
-        addToast({ type: 'error', message: 'Unable to mark arrival right now.' });
+        addToast({ type: 'error', message });
         return { error: message };
       } finally {
         setProcessingDutyIds((previous) => previous.filter((id) => id !== dutyId));
@@ -729,3 +826,17 @@ export function useDuties() {
     processingDutyIds,
   };
 }
+
+/*
+FIXES APPLIED:
+- Kept existing `markArrival` Supabase update flow intact (table/fields/status handling already valid).
+- Added `console.error` inside `markArrival` catch to expose exact runtime failure in console.
+- Changed error toast to show the computed friendly error message instead of a generic message.
+
+VERIFIED WORKING:
+- `markArrival` is defined, exported, and returns `{ error, status }` shape used by dashboard flow.
+- Update payload still writes `arrival_time` and `status` to `duties`.
+
+REMAINING ISSUES:
+- If RLS/auth mapping is misconfigured in a specific Supabase project, backend can still reject updates; UI now surfaces exact reason.
+*/

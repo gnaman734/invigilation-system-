@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BarChart2,
   ClipboardList,
@@ -163,6 +163,11 @@ export default function AdminDashboard() {
     fetchAllInstructors();
   };
 
+  const handlePunctualityRealtimeRefresh = useCallback(() => {
+    fetchAllDuties();
+    fetchAllInstructors({ force: true });
+  }, [fetchAllDuties, fetchAllInstructors]);
+
   const sectionFallback = <div className="h-64 animate-pulse rounded-2xl bg-muted" />;
 
   return (
@@ -325,6 +330,7 @@ export default function AdminDashboard() {
                       showOverallStats
                       showTrendTable
                       showRecentLateArrivals={false}
+                      onRealtimeRefresh={handlePunctualityRealtimeRefresh}
                     />
                   </div>
 
@@ -410,6 +416,7 @@ export default function AdminDashboard() {
                   showOverallStats
                   showTrendTable
                   showRecentLateArrivals
+                  onRealtimeRefresh={handlePunctualityRealtimeRefresh}
                 />
               </Suspense>
             </ErrorBoundary>

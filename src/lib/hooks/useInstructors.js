@@ -495,7 +495,15 @@ export function useInstructors() {
 
     fetchAllInstructors();
     fetchPendingRequests();
-  }, [fetchAllInstructors, fetchPendingRequests, role, debouncedRealtimeTick]);
+  }, [fetchAllInstructors, fetchPendingRequests, role]);
+
+  useEffect(() => {
+    if (role !== 'admin' || debouncedRealtimeTick <= 0) {
+      return;
+    }
+
+    fetchAllInstructors({ force: true });
+  }, [debouncedRealtimeTick, fetchAllInstructors, role]);
 
   const handleInstructorChange = useCallback(() => {
     setRealtimeTick((previous) => previous + 1);
@@ -505,10 +513,52 @@ export function useInstructors() {
     setRealtimeTick((previous) => previous + 1);
   }, []);
 
+  const handleAnalyticsCacheChange = useCallback(
+    (payload) => {
+      const updated = payload?.new;
+      const instructorKey = updated?.instructor_id;
+      if (!instructorKey) {
+        setRealtimeTick((previous) => previous + 1);
+        return;
+      }
+
+      const totalDuties = Number(updated.total_duties ?? 0);
+      const onTimeArrivals = Number(updated.on_time_count ?? 0);
+      const lateArrivals = Number(updated.late_count ?? 0);
+      const punctuality = totalDuties > 0 ? Math.round((onTimeArrivals / totalDuties) * 10000) / 100 : 0;
+
+      setInstructors((previous) =>
+        previous.map((row) =>
+          row.instructor_id === instructorKey
+            ? {
+                ...row,
+                total_duties: totalDuties,
+                on_time_arrivals: onTimeArrivals,
+                late_arrivals: lateArrivals,
+                punctuality_percentage: punctuality,
+              }
+            : row
+        )
+      );
+
+      if (instructorId && instructorId === instructorKey) {
+        setStats({
+          total_duties: totalDuties,
+          late_arrivals: lateArrivals,
+          on_time_arrivals: onTimeArrivals,
+        });
+        setPunctualityPercentage(Math.round(punctuality));
+      }
+
+      setRealtimeTick((previous) => previous + 1);
+    },
+    [instructorId]
+  );
+
   useRealtime({
     onInstructorChange: handleInstructorChange,
     onDutyChange: handleDutyOrAnalyticsChange,
-    onAnalyticsChange: handleDutyOrAnalyticsChange,
+    onAnalyticsChange: handleAnalyticsCacheChange,
   });
 
   return {

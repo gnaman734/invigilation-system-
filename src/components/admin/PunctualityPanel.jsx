@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { CheckCircle2 } from 'lucide-react';
 import StatsCard from '../shared/StatsCard';
+import { supabase } from '../../lib/supabase';
 import {
   calculatePunctualityPercentage,
   getMinutesLate,
@@ -25,6 +26,7 @@ export default function PunctualityPanel({
   showOverallStats = true,
   showTrendTable = true,
   showRecentLateArrivals = true,
+  onRealtimeRefresh,
 }) {
   const [page, setPage] = useState(1);
   const totals = useMemo(() => {
@@ -71,6 +73,30 @@ export default function PunctualityPanel({
   useEffect(() => {
     setPage(1);
   }, [rankedInstructors.length]);
+
+  useEffect(() => {
+    const channelName = `punctuality-realtime-${Math.random().toString(36).slice(2)}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'duties',
+        },
+        () => {
+          if (typeof onRealtimeRefresh === 'function') {
+            onRealtimeRefresh();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [onRealtimeRefresh]);
 
   const paginatedInstructors = rankedInstructors.slice((page - 1) * 10, page * 10);
 
