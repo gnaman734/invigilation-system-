@@ -392,7 +392,7 @@ export default function ExamDetail() {
                       (room.instructors ?? []).map((row) => {
                         const isFlashing = row.duty_id && flashIds.has(row.duty_id);
                         return (
-                          <tr key={row.exam_room_instructor_id} className={`group border-b border-white/4 transition-colors hover:bg-white/3 ${isFlashing ? 'bg-amber-500/5' : ''}`}>
+                          <tr key={row.exam_room_instructor_id} className={`group border-b border-white/4 transition-colors hover:bg-white/3 ${isFlashing ? 'flash-update' : ''}`}>
                             <td className="px-6 py-3.5">
                               <div className="flex items-center gap-3">
                                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 text-xs text-amber-400">{initials(row.name)}</span>

@@ -28,6 +28,34 @@ function buildStats(duties = [], rooms = []) {
   };
 }
 
+function buildStatsFromRooms(rooms = []) {
+  const totalDuties = rooms.reduce((sum, room) => sum + (room.instructors?.length ?? 0), 0);
+  const pendingCount = rooms.reduce(
+    (sum, room) => sum + (room.instructors ?? []).filter((item) => item.duty_status === 'pending').length,
+    0
+  );
+  const onTimeCount = rooms.reduce(
+    (sum, room) => sum + (room.instructors ?? []).filter((item) => item.duty_status === 'on-time').length,
+    0
+  );
+  const lateCount = rooms.reduce(
+    (sum, room) => sum + (room.instructors ?? []).filter((item) => item.duty_status === 'late').length,
+    0
+  );
+  const completedCount = onTimeCount + lateCount;
+  const completionRate = totalDuties > 0 ? Math.round((completedCount / totalDuties) * 100) : 0;
+
+  return {
+    total_rooms: rooms.length,
+    total_instructors: totalDuties,
+    total_duties: totalDuties,
+    pending_count: pendingCount,
+    on_time_count: onTimeCount,
+    late_count: lateCount,
+    completion_rate: completionRate,
+  };
+}
+
 function mapExamDetail(payload) {
   if (!payload) {
     return {
@@ -313,6 +341,50 @@ export function useExamDetail(initialExamId = null) {
 
   const refetch = useCallback(() => fetchExamDetail(examIdRef.current), [fetchExamDetail]);
 
+  const applyDutyRealtimeUpdate = useCallback((dutyRow) => {
+    if (!dutyRow?.id) {
+      return false;
+    }
+
+    let matched = false;
+
+    setExamDetail((previous) => {
+      const nextRooms = (previous.rooms ?? []).map((room) => {
+        const nextInstructors = (room.instructors ?? []).map((instructorRow) => {
+          const byDutyId = instructorRow.duty_id === dutyRow.id;
+          const byLinkId =
+            dutyRow.exam_room_instructor_id && instructorRow.exam_room_instructor_id === dutyRow.exam_room_instructor_id;
+
+          if (!byDutyId && !byLinkId) {
+            return instructorRow;
+          }
+
+          matched = true;
+          return {
+            ...instructorRow,
+            duty_id: dutyRow.id,
+            duty_status: dutyRow.status,
+            arrival_time: dutyRow.arrival_time,
+            reporting_time: dutyRow.reporting_time,
+          };
+        });
+
+        return {
+          ...room,
+          instructors: nextInstructors,
+        };
+      });
+
+      return {
+        ...previous,
+        rooms: nextRooms,
+        stats: buildStatsFromRooms(nextRooms),
+      };
+    });
+
+    return matched;
+  }, []);
+
   useEffect(() => {
     if (!sanitizeUUID(examIdRef.current || '')) return undefined;
 
@@ -330,6 +402,15 @@ export function useExamDetail(initialExamId = null) {
         },
         async (payload) => {
           setLastRealtimeEvent({ table: 'duties', ...payload });
+
+          if (payload?.eventType === 'UPDATE') {
+            const updated = applyDutyRealtimeUpdate(payload?.new);
+            if (!updated) {
+              await fetchExamDetail(examIdRef.current);
+            }
+            return;
+          }
+
           await fetchExamDetail(examIdRef.current);
         }
       )
@@ -362,7 +443,7 @@ export function useExamDetail(initialExamId = null) {
       supabase.removeChannel(instructorsChannel);
       setIsLive(false);
     };
-  }, [fetchExamDetail, roomIds]);
+  }, [applyDutyRealtimeUpdate, fetchExamDetail, roomIds]);
 
   useEffect(() => {
     if (!initialExamId) return;

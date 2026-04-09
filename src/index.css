@@ -279,3 +279,16 @@
     transform: translateY(0);
   }
 }
+
+@keyframes flashUpdate {
+  0% {
+    background: rgba(245, 158, 11, 0.15);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+.flash-update {
+  animation: flashUpdate 0.8s ease-out;
+}
