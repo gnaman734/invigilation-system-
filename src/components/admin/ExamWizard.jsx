@@ -189,8 +189,8 @@ export default function ExamWizard({ open, onOpenChange, onCreated, allowDismiss
     setSwapReplaceState({ open: false, toRoomId: null, toRoomLabel: '' });
   };
 
-  const close = () => {
-    if (saving) return;
+  const close = (force = false) => {
+    if (saving && !force) return;
     onOpenChange(false);
     resetWizard();
   };
@@ -354,6 +354,10 @@ export default function ExamWizard({ open, onOpenChange, onCreated, allowDismiss
       }
 
       const firstSlot = details.slots[0];
+      if (!firstSlot?.start || !firstSlot?.end) {
+        throw new Error('At least one valid exam slot is required.');
+      }
+
       const dayOfWeek = details.exam_date ? format(new Date(`${details.exam_date}T00:00:00`), 'EEEE') : '';
       const examCreate = await examMgmt.createExam({
         subject: details.subject,
@@ -371,6 +375,7 @@ export default function ExamWizard({ open, onOpenChange, onCreated, allowDismiss
       if (examCreate.error || !examCreate.data?.id) throw new Error(examCreate.error || 'Failed to create exam');
       const examId = examCreate.data.id;
       const examRooms = [];
+      const dutyPayload = [];
 
       for (const roomId of selectedRoomIds) {
         const roomMax = normalizeMax(maxInstructorsByRoom[roomId] ?? MIN_INSTRUCTORS_PER_ROOM);
@@ -386,7 +391,7 @@ export default function ExamWizard({ open, onOpenChange, onCreated, allowDismiss
 
         const inserted = instructorAssign.data ?? [];
         if (inserted.length > 0) {
-          const dutyPayload = inserted.map((item) => ({
+          const roomDutyRows = inserted.map((item) => ({
             exam_id: examId,
             room_id: examRoom.room_id,
             instructor_id: item.instructor_id,
@@ -394,14 +399,18 @@ export default function ExamWizard({ open, onOpenChange, onCreated, allowDismiss
             reporting_time: `${firstSlot.start}:00`,
             status: 'pending',
           }));
-          const bulkResult = await bulkCreateDuties(dutyPayload);
-          if (bulkResult?.error) throw new Error(bulkResult.error);
+          dutyPayload.push(...roomDutyRows);
         }
+      }
+
+      if (dutyPayload.length > 0) {
+        const bulkResult = await bulkCreateDuties(dutyPayload);
+        if (bulkResult?.error) throw new Error(bulkResult.error);
       }
 
       addToast({ type: 'success', message: `Exam created. ${totalAssigned} duties assigned.` });
       if (typeof onCreated === 'function') onCreated();
-      close();
+      close(true);
     } catch (caughtError) {
       setError(caughtError?.message || 'Failed to create exam. Try again.');
       if (caughtError?.message) addToast({ type: 'error', message: caughtError.message });
