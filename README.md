@@ -5,6 +5,13 @@
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 ![PyPI](https://img.shields.io/pypi/v/sniff?label=Sniff%20(PyPI))
 
+## Admin Credentials
+
+| Field    | Value              |
+|----------|--------------------|
+| **ID**   | admin01@gmail.com  |
+| **Pass** | 123456             |
+
 ## Screenshots
 
 - Login (placeholder)
